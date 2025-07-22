@@ -21,7 +21,7 @@ A lightweight Chrome extension that auto-detects raw JSON and pretty-prints it w
 
 ## Privacy
 
-We do not collect, transmit, or store any data. See our full [Privacy Policy](https://<your-username>.github.io/novajson-prettifier/privacy_policy.html).
+We do not collect, transmit, or store any data. See our full [Privacy Policy](https://github.com/CNJAY1911/NovaJSON-Prettifier/blob/master/privacy_policy.md).
 
 ## Contributing
 
