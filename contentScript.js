@@ -1,18 +1,29 @@
 (function () {
   // ====================== UTILITIES & GLOBAL STATE ======================
   function isURL(str) { return /^https?:\/\//.test(str); }
+  function escapeHTML(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
 
-  let keyColor = '#fff';
-  const keyPalette = ['#fff', '#ffb300', '#00e6e6', '#00bfff', '#ff3b3b', '#00ff99', '#ffd700', '#b0b0b0'];
-
-  const COLORS = {
-    string: '#00e6e6',
-    number: '#ffd700',
-    boolean: '#ff6f00',
-    null: '#ff3b3b',
-    url: '#2196f3',
-    key: keyColor
+  // THEMES (3 light / 3 dark)
+  const THEMES = {
+    "Midnight Neon" : { bg:"#181a1b", key:"#fff", string:"#00e6e6", number:"#ffd700", boolean:"#ff6f00", null:"#ff3b3b", url:"#2196f3" },
+    "Graphite Dark" : { bg:"#121212", key:"#b0b0b0", string:"#6ad1e3", number:"#f6d55c", boolean:"#ed553b", null:"#ff3b3b", url:"#4ea1f3" },
+    "Solar Dark"    : { bg:"#002b36", key:"#93a1a1", string:"#2aa198", number:"#b58900", boolean:"#cb4b16", null:"#dc322f", url:"#268bd2" },
+    "Paper White"   : { bg:"#ffffff", key:"#333", string:"#008b8b", number:"#a67c00", boolean:"#cc5500", null:"#d00000", url:"#0b5ed7" },
+    "Slate Light"   : { bg:"#f5f7fa", key:"#222", string:"#007f8c", number:"#b38600", boolean:"#cc4e00", null:"#c20000", url:"#005bcc" },
+    "Solar Light"   : { bg:"#fdf6e3", key:"#657b83", string:"#2aa198", number:"#b58900", boolean:"#cb4b16", null:"#dc322f", url:"#268bd2" }
   };
+  let currentTheme = "Midnight Neon";
+
+  let keyColor = THEMES[currentTheme].key;
+  const keyPalette = ['#fff', '#ffb300', '#00e6e6', '#00bfff', '#ff3b3b', '#00ff99', '#ffd700', '#b0b0b0', '#000000'];
+
+  const COLORS = { ...THEMES[currentTheme], key: keyColor };
 
   let expandState = {};
   let fontSize = 16;
@@ -21,62 +32,54 @@
   let rootJson = null;
   let highlightPath = null;
 
-  // Cache scroll
   let lastScrollTop = 0;
 
-  // ====================== ALWAYS-INJECTED STYLES (gutter + kill Google bg) ======================
-  (function injectBaseStyles() {
+  // ====================== STYLE INJECTION ======================
+  function applyThemeStyles() {
     let style = document.getElementById('jpp-styles');
     if (!style) {
       style = document.createElement('style');
       style.id = 'jpp-styles';
-      document.head.appendChild(style);
     }
     style.textContent = `
       html, body {
         margin:0 !important;
         padding:0 !important;
         height:100% !important;
-        background:#181a1b !important;
+        background:${COLORS.bg} !important;
       }
-      /* Kill Google JSON viewer background (they set it on PRE, DIV, etc.) */
-      pre, body > div, body > pre {
-        background:none !important;
-      }
+      pre, body > div, body > pre { background:none !important; }
       #jpp-root {
         position:fixed;
-        top:0;
-        left:0;
-        right:0;
-        bottom:0;
+        top:0; left:0; right:0; bottom:0;
         overflow:auto;
-        background:#181a1b;
+        background:${COLORS.bg};
       }
-      .jpp-tree {
-        position:relative;
-        margin-left:20px !important;
-      }
+      .jpp-tree { position:relative; margin-left:20px !important; color:${COLORS.key}; }
       .jpp-tree::before {
         content:"";
         position:absolute;
-        top:0;
-        left:8px;
-        bottom:0;
+        top:0; left:8px; bottom:0;
         width:4px;
-        background:
-          radial-gradient(circle, rgba(128,128,128,0.5) 25%, transparent 25%)
-          repeat-y;
+        background: radial-gradient(circle, rgba(128,128,128,0.5) 25%, transparent 25%) repeat-y;
         background-size:4px 4px;
       }
+      /* ORIGINAL SMALL TOGGLE AREA */
       .jpp-toggle {
         position:absolute !important;
         left:-20px !important;
+        cursor:pointer; user-select:none;
       }
-      .jpp-highlight {
-        background:rgba(255,255,0,0.3) !important;
+      .jpp-highlight { background:rgba(255,255,0,0.3) !important; }
+      .jpp-theme-select {
+        background:#222; color:#fff; border:none; padding:6px 8px; border-radius:4px; cursor:pointer; font-size:13px;
       }
+      .jpp-theme-select.light { background:#e0e0e0; color:#333; }
     `;
-  })();
+    (document.head || document.documentElement).appendChild(style);
+    document.body && (document.body.style.background = COLORS.bg);
+  }
+  applyThemeStyles();
 
   // ====================== HELPERS ======================
   function copyToClipboard(text) {
@@ -84,10 +87,10 @@
     else {
       const ta = document.createElement('textarea');
       ta.value = text;
-      document.body.appendChild(ta);
+      (document.body || document.documentElement).appendChild(ta);
       ta.select();
       document.execCommand('copy');
-      document.body.removeChild(ta);
+      ta.remove();
     }
   }
 
@@ -110,9 +113,7 @@
       const keys = Object.keys(value);
       const isOpen = isRoot ? true : (expandState[keyPath] !== false);
       const toggleBtn = (!isRoot && keys.length > 0)
-        ? `<span class="jpp-toggle" data-path="${keyPath}" style="cursor:pointer;user-select:none;">
-             ${isOpen ? '▼' : '▶'}
-           </span>`
+        ? `<span class="jpp-toggle" data-path="${keyPath}">${isOpen ? '▼' : '▶'}</span>`
         : '';
 
       if (keys.length === 0) {
@@ -129,7 +130,7 @@
                   class="jpp-collapsed jpp-count${highlightPath===keyPath?' jpp-highlight':''}"
                   data-path="${keyPath}"
                   data-jpp-path="${keyPath}"
-                  style="color:#2196f3;cursor:pointer;user-select:text;"
+                  style="color:${COLORS.url};cursor:pointer;user-select:text;"
                 >
                   ${toggleBtn}${ellipsis}
                 </span>${!isLast ? ',' : ''}`;
@@ -166,14 +167,14 @@
       return html;
     }
 
+    // Primitive values (escape HTML so it never renders)
     let val;
     if (typeof value === 'string') {
+      const safe = escapeHTML(value);
       if (isURL(value)) {
-        val = `<a href="${value}" target="_blank" style="color:${COLORS.url};text-decoration:underline;">
-                 "${value}"
-               </a>`;
+        val = `<a href="${safe}" target="_blank" style="color:${COLORS.url};text-decoration:underline;">"${safe}"</a>`;
       } else {
-        val = `<span style="color:${COLORS.string};">"${value}"</span>`;
+        val = `<span style="color:${COLORS.string};">"${safe}"</span>`;
       }
     } else if (typeof value === 'number') {
       val = `<span style="color:${COLORS.number};">${value}</span>`;
@@ -214,6 +215,13 @@
     </div>`;
   }
 
+  function renderThemeSelect() {
+    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(COLORS.bg);
+    return `<select class="jpp-theme-select ${isLight ? 'light' : ''}">
+      ${Object.keys(THEMES).map(t => `<option value="${t}" ${t===currentTheme?'selected':''}>${t}</option>`).join('')}
+    </select>`;
+  }
+
   function renderFontSizeSlider() {
     return `<div style="display:inline-flex;align-items:center;margin-left:18px;gap:6px;">
       <span style="color:#aaa;font-size:13px;">Font size:</span>
@@ -237,7 +245,7 @@
                position:sticky;
                top:0;
                z-index:10;
-               background:#181a1b;
+               background:${COLORS.bg};
                padding:10px 18px 10px 12px;
                display:flex;
                align-items:center;
@@ -252,17 +260,18 @@
                 Collapse All
               </button>
               ${renderKeyPalette()}
+              ${renderThemeSelect()}
               ${renderFontSizeSlider()}
               <div style="flex-basis:100%;height:0;"></div>
               <div class="jpp-url" style="
                      width:100%;
                      margin-top:8px;
                      font-size:20px;
-                     color:#ffd700;
+                     color:${COLORS.number};
                      word-break:break-all;
                      line-height:1.2;
                    ">
-                ${window.location.href}
+                ${escapeHTML(window.location.href)}
               </div>
             </div>`;
   }
@@ -285,7 +294,6 @@
   // ====================== FIND POPUP ======================
   function createFindPopup() {
     if (document.getElementById('jpp-find-popup')) return;
-
     const popup = document.createElement('div');
     popup.id = 'jpp-find-popup';
     popup.innerHTML = `
@@ -317,7 +325,7 @@
         </div>
         <div
           id="jpp-find-results"
-          style="flex:1;overflow-y:auto;padding:8px 16px 8px 24px;"
+          style="flex:1;overflow-y:auto;padding:8px 16px 8px 24px;color:#fff;"
         ></div>
       </div>`;
     document.body.appendChild(popup);
@@ -325,7 +333,6 @@
     document.getElementById('jpp-find-close').onclick = () => {
       popup.remove();
       highlightPath = null;
-      // no render => scroll preserved
     };
 
     const input = document.getElementById('jpp-find-input');
@@ -337,28 +344,18 @@
         if (typeof obj === 'object' && obj !== null) {
           Object.entries(obj).forEach(([k, v]) => {
             const childPath = path + (Array.isArray(obj) ? `[${k}]` : `.${k}`);
-            if (!Array.isArray(obj) && k.toLowerCase().includes(term)) {
-              results.push({ path: childPath, key: k, value: v });
-            }
-            if (typeof v === 'string' && v.toLowerCase().includes(term)) {
-              results.push({ path: childPath, key: k, value: v });
-            }
-            if (typeof v === 'object' && v !== null) {
-              search(v, childPath);
-            }
+            if (!Array.isArray(obj) && k.toLowerCase().includes(term)) results.push({ path: childPath, key: k, value: v });
+            if (typeof v === 'string' && v.toLowerCase().includes(term)) results.push({ path: childPath, key: k, value: v });
+            if (typeof v === 'object' && v !== null) search(v, childPath);
           });
         }
       })(rootJson, '');
 
-      // dedupe
       const seen = new Set();
       results = results.filter(r => !seen.has(r.path) && seen.add(r.path));
 
       const resDiv = document.getElementById('jpp-find-results');
-      if (!term) {
-        resDiv.innerHTML = '';
-        return;
-      }
+      if (!term) { resDiv.innerHTML = ''; return; }
       if (results.length === 0) {
         resDiv.innerHTML = '<div style="color:#aaa;padding:12px;">No results</div>';
         return;
@@ -369,11 +366,11 @@
           data-path="${r.path}"
           style="padding:6px 0;cursor:pointer;color:#fff;"
         >
-          <span style="color:#ffd700;">${r.key}</span>:
-          <span style="color:#00e6e6;">
+          <span style="color:${COLORS.number};">${escapeHTML(r.key)}</span>:
+          <span style="color:${COLORS.string};">
             ${typeof r.value === 'object'
               ? (Array.isArray(r.value) ? '[...]' : '{...}')
-              : JSON.stringify(r.value)}
+              : escapeHTML(JSON.stringify(r.value))}
           </span>
         </div>
       `).join('');
@@ -386,10 +383,7 @@
 
           const segments = fullPath.match(/(?:\[[^\]]+\]|\.[^.\[]+)/g) || [];
           let acc = rootPath;
-          segments.forEach(seg => {
-            acc += seg;
-            expandState[acc] = true;
-          });
+          segments.forEach(seg => { acc += seg; expandState[acc] = true; });
 
           safeRender(rootJson, () => {
             const tgt = document.querySelector(`[data-jpp-path="${highlightPath}"]`);
@@ -404,18 +398,13 @@
   function render(json) {
     rootJson = json;
 
-    if (highlightPath && !document.getElementById('jpp-find-popup')) {
-      highlightPath = null;
-    }
+    if (highlightPath && !document.getElementById('jpp-find-popup')) highlightPath = null;
 
     if (highlightPath && !highlightPath.startsWith(rootPath)) {
       const full = rootPath + highlightPath;
       const segs = full.match(/(?:\[[^\]]+\]|\.[^\.\[]+)+/g) || [];
       let acc = rootPath;
-      segs.forEach(seg => {
-        acc += seg;
-        expandState[acc] = true;
-      });
+      segs.forEach(seg => { acc += seg; expandState[acc] = true; });
       highlightPath = full;
     }
 
@@ -427,6 +416,7 @@
       document.body.style.margin = '0';
       document.body.style.padding = '0';
       document.body.style.overflowX = 'auto';
+      document.body.style.background = COLORS.bg;
     }
 
     const container = document.createElement('div');
@@ -438,6 +428,7 @@
         line-height:1.7;
         letter-spacing:0.04em;
         padding:18px;
+        color:${COLORS.key};
       ">
         ${renderTree(json)}
       </div>
@@ -450,7 +441,6 @@
       expandState = { [rootPath]: true };
       safeRender(json);
     };
-
     container.querySelector('.jpp-collapse').onclick = () => {
       highlightPath = null;
       (function collapse(o, p) {
@@ -462,6 +452,16 @@
       expandState[rootPath] = true;
       safeRender(json);
     };
+
+    // Theme select
+    const themeSel = container.querySelector('.jpp-theme-select');
+    themeSel.addEventListener('change', e => {
+      currentTheme = e.target.value;
+      Object.assign(COLORS, THEMES[currentTheme]);
+      keyColor = COLORS.key;
+      applyThemeStyles();
+      safeRender(json);
+    });
 
     // Node toggle
     container.querySelectorAll('.jpp-toggle').forEach(el => {
@@ -503,7 +503,7 @@
 
     // Font size
     const slider = container.querySelector('.jpp-font-slider');
-    const label = container.querySelector('.jpp-font-size-label');
+    const label  = container.querySelector('.jpp-font-size-label');
     slider.addEventListener('input', e => {
       fontSize = +e.target.value;
       const tree = document.querySelector('.jpp-tree');
