@@ -1,34 +1,38 @@
 # NovaJSON Prettifier
 
-A lightweight Chrome extension that auto-detects raw JSON and pretty-prints it with collapsible nodes, search, dark mode, and persistent scroll.
+Pretty‑print raw JSON in Chrome **on demand**. Click the toolbar button and get collapsible nodes, fast search, 6 light/dark themes, and persistent scroll — all locally, no data collected.
 
 ## ✨ Features
 
-- Auto-detects `application/json` & `.json` URLs
-- Collapse/expand with state memory
-- Inline search popup + smooth scroll to result
-- Dark theme, adjustable font size & key color
-- One-click copy any node/value
-- No data collection, no remote code
+- **Tap‑to‑run:** Uses `activeTab` + `scripting`; runs only after you click.
+- **6 Themes (3 light / 3 dark):** Midnight Neon, Graphite Dark, Solar Dark, Paper White, Slate Light, Solar Light.
+- **Collapse / expand** with state memory (scroll position preserved).
+- **Inline search popup** with highlight & smooth scroll to result.
+- **Safe HTML strings:** Values are escaped and shown as code (never rendered).
+- **Adjustable UI:** Font size slider + key color palette.
+- **One‑click copy** of any node/value.
+- **No remote code, no tracking, no data collection.**
 
-## Install
+## 🚀 Install
 
 - **Chrome Web Store:** (coming soon)
 - **Manual (dev mode):**
-  1. Clone this repo
-  2. Go to `chrome://extensions` → Enable Developer Mode
-  3. “Load unpacked” → select the extension folder
+  1. Clone or download this repo
+  2. Open `chrome://extensions`, enable **Developer mode**
+  3. Click **Load unpacked** and select the extension folder
 
-## Privacy
+## 🔐 Privacy
 
-We do not collect, transmit, or store any data. See our full [Privacy Policy](https://github.com/CNJAY1911/NovaJSON-Prettifier/blob/master/privacy_policy.md).
+We do not collect, transmit, or store any data. Everything runs locally in your browser.
+Read the full [Privacy Policy](https://github.com/CNJAY1911/NovaJSON-Prettifier/blob/master/privacy_policy.md).
 
-## Contributing
+## 🛠 Contributing
 
-PRs welcome! Please:
+PRs welcome!  
+Please:
 - Open an issue first for major changes
-- Follow MV3 best practices
+- Follow Chrome MV3 best practices
 
-## License
+## 📜 License
 
 MIT
