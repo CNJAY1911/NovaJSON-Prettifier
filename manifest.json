@@ -22,16 +22,9 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://*/*.json*",
-        "data:application/json*"
-      ],
+      "matches": ["<all_urls>"],
       "js": ["contentScript.js"],
-      "run_at": "document_start"
+      "run_at": "document_idle"
     }
-  ],
-  "web_accessible_resources": [{
-    "resources": ["icons/*"],
-    "matches": ["*://*/*.json*", "data:application/json*"]
-  }]
+  ]
 }
