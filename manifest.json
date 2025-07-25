@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "NovaJSON Prettifier",
-  "version": "1.1.0",
-  "description": "Pretty‑print JSON on demand: fold, search, themes, dark/light modes.",
+  "version": "1.2.0",
+  "description": "Auto-formats raw JSON (object or array root) on reload. Robust detection, theme-adaptive highlight, color pickers, full UI management, and prevents double-formatting from other extensions.",
   "permissions": ["activeTab", "scripting"],
   "host_permissions": [
     "<all_urls>"
@@ -23,7 +23,11 @@
       "48":  "icons/icon48.png"
     }
   },
-  "background": {
-    "service_worker": "background.js"
-  }
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "run_at": "document_end"
+    }
+  ]
 }

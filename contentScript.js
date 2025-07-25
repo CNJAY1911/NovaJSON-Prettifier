@@ -1,4 +1,24 @@
 (function () {
+  if (window.NovaJSONPrettifierActive) return;
+  window.NovaJSONPrettifierActive = true;
+  // Robust JSON detection: support <pre> or raw body text
+  function getRawJSONText() {
+    // Prefer <pre> if present
+    const pre = document.querySelector('pre');
+    if (pre) return pre.textContent.trim();
+    // Otherwise, try the whole body (for API responses)
+    return document.body && document.body.childElementCount === 0
+      ? document.body.textContent.trim()
+      : null;
+  }
+  function isRawJSON() {
+    const text = getRawJSONText();
+    if (!text) return false;
+    try { JSON.parse(text); return true; }
+    catch { return false; }
+  }
+  if (!isRawJSON()) return;
+
   // ====================== UTILITIES & GLOBAL STATE ======================
   function isURL(str) { return /^https?:\/\//.test(str); }
   function escapeHTML(str) {
@@ -731,21 +751,21 @@
   }
 
   // ====================== BOOTSTRAP ======================
-  function isRawJSON() {
-    const pre = document.querySelector('pre');
-    if (!pre) return false;
-    try { JSON.parse(pre.textContent); return true; }
-    catch { return false; }
+  const text = getRawJSONText();
+  if (!text) return;
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    document.body.innerHTML = '<div style="color:#ff3b3b;padding:24px;font-size:18px;">Invalid JSON</div>';
+    return;
   }
-
-  if (isRawJSON()) {
-    let json;
-    try {
-      json = JSON.parse(document.querySelector('pre').textContent);
-    } catch {
-      document.body.innerHTML = '<div style="color:#ff3b3b;padding:24px;font-size:18px;">Invalid JSON</div>';
-      return;
-    }
-    render(json);
-  }
+  // Clear the page before rendering the pretty-printed JSON
+  document.documentElement.innerHTML = '';
+  const pre = document.createElement('pre');
+  pre.id = 'novajson-raw';
+  pre.style.whiteSpace = 'pre-wrap';
+  pre.textContent = text;
+  document.body.appendChild(pre);
+  render(json);
 })();
