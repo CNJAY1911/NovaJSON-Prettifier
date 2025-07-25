@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NovaJSON Prettifier",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "Auto-formats raw JSON (object or array root) on reload. Robust detection, theme-adaptive highlight, color pickers, full UI management, and prevents double-formatting from other extensions.",
   "permissions": ["activeTab", "scripting"],
   "host_permissions": [

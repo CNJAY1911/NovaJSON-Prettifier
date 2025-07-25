@@ -2,7 +2,7 @@
 
 ## Changelog
 
-### v1.2.0
+### v2.0.0
 - Auto-runs on reload for all tabs, but only activates on valid JSON (object or array root)
 - Robust JSON detection: works for both <pre> and raw body text
 - Theme-adaptive highlight color with user color picker
