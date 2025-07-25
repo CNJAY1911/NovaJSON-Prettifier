@@ -34,7 +34,7 @@
   // Default URL styles
   let urlStyles = {
     color: getUrlColor(),
-    fontSize: '20px',
+    fontSize: '16px',
     fontWeight: '400',
     lineHeight: '1.2',
     letterSpacing: '0',
@@ -166,10 +166,7 @@
         : '';
 
       if (keys.length === 0) {
-        return `${toggleBtn}
-                <span style="color:${COLORS.key};margin-left:2ch;">
-                  ${isArray ? '[]' : '{}'}
-                </span>${!isLast ? ',' : ''}`;
+        return `${toggleBtn}<span style="color:${COLORS.key};">${isArray ? '[]' : '{}'}</span>${!isLast ? ',' : ''}`;
       }
 
       if (!isOpen) {
@@ -186,10 +183,7 @@
       }
 
       let html = '';
-      html += `${toggleBtn}
-               <span style="color:${COLORS.key};margin-left:2ch;">
-                 ${isArray ? '[' : '{'}
-               </span>\n`;
+      html += `${toggleBtn}<span style="color:${COLORS.key};">${isArray ? '[' : '{'}</span>`;
       keys.forEach((k, i) => {
         const childPath = keyPath + (isArray ? `[${k}]` : `.${k}`);
         html += `<div
@@ -198,9 +192,9 @@
                    style="margin-left:${(level + INDENT)}ch;"
                  >`;
         if (!isArray) {
-          html += `<span class="jpp-key" style="color:${COLORS.key};">"${k}"</span>: `;
+          html += `<span class="jpp-key" style="color:${COLORS.key};">"${k}"</span>:`;
         }
-        html += syntaxHighlight(
+        html += ' ' + syntaxHighlight(
           value[k],
           childPath,
           level,
@@ -210,9 +204,7 @@
         );
         html += `</div>`;
       });
-      html += `<span style="color:${COLORS.key};margin-left:${level}ch;">
-                 ${isArray ? ']' : '}'}${!isLast ? ',' : ''}
-               </span>`;
+      html += `<span style="color:${COLORS.key};margin-left:${level}ch;">${isArray ? ']' : '}'}${!isLast ? ',' : ''}</span>`;
       return html;
     }
 
@@ -328,27 +320,28 @@
                z-index:10;
                background:${COLORS.bg};
                padding:10px 18px 10px 12px;
-               display:flex;
-               align-items:center;
-               gap:18px;
                border-bottom:1px solid #222;
-               flex-wrap:wrap;
              ">
-              <button class="jpp-expand" style="background:#222;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-weight:600;">
-                Expand All
-              </button>
-              <button class="jpp-collapse" style="background:#222;color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-weight:600;">
-                Collapse All
-              </button>
-              ${renderKeyPalette()}
-              ${renderThemeSelect()}
-              ${renderFontSizeSlider()}
-              ${renderHighlightColorPicker()}
-              <div style="flex-basis:100%;height:0;"></div>
-              ${renderUrlManager(urlStyles)}
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0;">
+                  <button class="jpp-expand" style="background:#222;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">
+                    Expand All
+                  </button>
+                  <button class="jpp-collapse" style="background:#222;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">
+                    Collapse All
+                  </button>
+                  ${renderKeyPalette()}
+                  ${renderThemeSelect()}
+                  ${renderFontSizeSlider()}
+                  ${renderHighlightColorPicker()}
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                  ${renderUrlManager(urlStyles)}
+                </div>
+              </div>
               <div class="jpp-url" style="
                      width:100%;
-                     margin-top:4px;
+                     margin-top:20px;
                      font-size:${urlStyles.fontSize};
                      color:${getUrlColor()};
                      word-break:break-all;
