@@ -27,6 +27,20 @@
 
   const COLORS = { ...THEMES[currentTheme], key: keyColor };
 
+  // Add to global state
+  let customHighlightColor = null;
+  let customUrlColor = null;
+
+  // Default URL styles
+  let urlStyles = {
+    color: getUrlColor(),
+    fontSize: '20px',
+    fontWeight: '400',
+    lineHeight: '1.2',
+    letterSpacing: '0',
+    fontFamily: 'Fira Mono, monospace'
+  };
+
   let expandState = {};
   let fontSize = 16;
   const INDENT = 1;
@@ -36,6 +50,37 @@
 
   let lastScrollTop = 0;
 
+  // Theme-adaptive highlight color logic
+  function getThemeHighlightColor() {
+    // Light/dark detection based on bg color
+    const bg = COLORS.bg.toLowerCase();
+    // Simple heuristic: if bg is very light, use a darker highlight; else, use a light/yellowish one
+    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(bg) || (bg.startsWith('#') && parseInt(bg.replace('#',''),16) > 0xaaaaaa);
+    return isLight ? 'rgba(255, 230, 0, 0.35)' : 'rgba(255, 255, 100, 0.35)';
+  }
+
+  function getHighlightColor() {
+    return customHighlightColor || getThemeHighlightColor();
+  }
+  function getThemeUrlColor() {
+    // Use the theme's number color for URL text, but ensure contrast
+    return COLORS.number;
+  }
+  function getUrlColor() {
+    return customUrlColor || getThemeUrlColor();
+  }
+
+  // Add a function to get a hex color for the color picker
+  function getHighlightColorHex() {
+    // If user picked a custom color, use it
+    if (customHighlightColor) return customHighlightColor;
+    // Otherwise, return a theme-appropriate yellow hex
+    const bg = COLORS.bg.toLowerCase();
+    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(bg) || (bg.startsWith('#') && parseInt(bg.replace('#',''),16) > 0xaaaaaa);
+    // Use a yellow that is visible on both backgrounds
+    return isLight ? '#fff700' : '#fff964';
+  }
+
   // ====================== STYLE INJECTION ======================
   function applyThemeStyles() {
     let style = document.getElementById('jpp-styles');
@@ -44,6 +89,7 @@
       style.id = 'jpp-styles';
     }
     style.textContent = `
+      @import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Source+Code+Pro:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&family=Inconsolata:wght@400;700&display=swap');
       html, body {
         margin:0 !important;
         padding:0 !important;
@@ -72,11 +118,12 @@
         left:-20px !important;
         cursor:pointer; user-select:none;
       }
-      .jpp-highlight { background:rgba(255,255,0,0.3) !important; }
+      .jpp-highlight { background:${getHighlightColor()} !important; }
       .jpp-theme-select {
         background:#222; color:#fff; border:none; padding:6px 8px; border-radius:4px; cursor:pointer; font-size:13px;
       }
       .jpp-theme-select.light { background:#e0e0e0; color:#333; }
+      .jpp-url-manager { margin-top:0 !important; margin-bottom:0 !important; padding:0 !important; }
     `;
     (document.head || document.documentElement).appendChild(style);
     document.body && (document.body.style.background = COLORS.bg);
@@ -199,15 +246,12 @@
   function renderKeyPalette() {
     return `<div style="display:inline-flex;gap:6px;align-items:center;margin-left:12px;position:relative;">
     <span style="color:#aaa;font-size:13px;">Key color:</span>
-    <span class="jpp-key-color-preview"
-      style="display:inline-block;width:18px;height:18px;border-radius:4px;background:${keyColor};border:2px solid #2196f3;cursor:pointer;vertical-align:middle;"
-      tabindex="0"
-    ></span>
     <input
       type="color"
       class="jpp-key-color-picker"
       value="${keyColor}"
-      style="display:none;position:absolute;left:0;top:28px;z-index:1001;box-shadow:0 2px 8px rgba(0,0,0,0.15);border:none;padding:0;width:36px;height:36px;background:transparent;cursor:pointer;"
+      title="Key Color"
+      style="width:24px;height:24px;border:none;cursor:pointer;vertical-align:middle;"
     >
   </div>`;
   }
@@ -237,7 +281,47 @@
     </div>`;
   }
 
-  function renderTopBar() {
+  function renderUrlManager(urlStyles) {
+    const fonts = [
+      { name: 'Fira Mono', css: 'Fira Mono, monospace' },
+      { name: 'JetBrains Mono', css: 'JetBrains Mono, monospace' },
+      { name: 'Source Code Pro', css: 'Source Code Pro, monospace' },
+      { name: 'IBM Plex Mono', css: 'IBM Plex Mono, monospace' },
+      { name: 'Roboto Mono', css: 'Roboto Mono, monospace' },
+      { name: 'Inconsolata', css: 'Inconsolata, monospace' },
+      { name: 'Menlo', css: 'Menlo, monospace' },
+      { name: 'Consolas', css: 'Consolas, monospace' },
+      { name: 'Courier New', css: 'Courier New, monospace' },
+      { name: 'monospace', css: 'monospace' }
+    ];
+    return `<div class="jpp-url-manager" style="display:flex;align-items:center;gap:8px;margin:0;padding:0;flex-wrap:wrap;">
+      <span style="color:#aaa;font-size:13px;">URL text:</span>
+      <input type="color" class="jpp-url-color" value="${getUrlColor()}" title="Color" style="width:24px;height:24px;border:none;cursor:pointer;">
+      <button class="jpp-url-reset" style="margin-left:2px;padding:2px 6px;font-size:12px;">Reset</button>
+      <input type="number" class="jpp-url-fontsize" min="10" max="40" value="${parseInt(urlStyles.fontSize)}" title="Font Size" style="width:48px;">
+      <select class="jpp-url-fontweight" title="Font Weight">
+        <option value="400" ${urlStyles.fontWeight==='400'?'selected':''}>Normal</option>
+        <option value="500" ${urlStyles.fontWeight==='500'?'selected':''}>Medium</option>
+        <option value="600" ${urlStyles.fontWeight==='600'?'selected':''}>Semi-Bold</option>
+        <option value="700" ${urlStyles.fontWeight==='700'?'selected':''}>Bold</option>
+      </select>
+      <input type="number" class="jpp-url-lineheight" min="1" max="3" step="0.05" value="${parseFloat(urlStyles.lineHeight)}" title="Line Height" style="width:48px;">
+      <input type="number" class="jpp-url-letterspacing" min="0" max="10" step="0.1" value="${parseFloat(urlStyles.letterSpacing)}" title="Letter Spacing" style="width:48px;">
+      <select class="jpp-url-fontfamily" title="Font Family">
+        ${fonts.map(f => `<option value="${f.css}" ${urlStyles.fontFamily===f.css?'selected':''}>${f.name}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+
+  function renderHighlightColorPicker() {
+    return `<div style="display:inline-flex;align-items:center;gap:6px;">
+    <span style="color:#aaa;font-size:13px;">Highlight:</span>
+    <input type="color" class="jpp-highlight-color-picker" value="${getHighlightColorHex()}" title="Highlight Color" style="width:24px;height:24px;border:none;cursor:pointer;vertical-align:middle;">
+    <button class="jpp-highlight-reset" style="margin-left:2px;padding:2px 6px;font-size:12px;">Reset</button>
+  </div>`;
+  }
+
+  function renderTopBar(urlStyles) {
     return `<div class="jpp-topbar" style="
                position:sticky;
                top:0;
@@ -259,14 +343,19 @@
               ${renderKeyPalette()}
               ${renderThemeSelect()}
               ${renderFontSizeSlider()}
+              ${renderHighlightColorPicker()}
               <div style="flex-basis:100%;height:0;"></div>
+              ${renderUrlManager(urlStyles)}
               <div class="jpp-url" style="
                      width:100%;
-                     margin-top:8px;
-                     font-size:20px;
-                     color:${COLORS.number};
+                     margin-top:4px;
+                     font-size:${urlStyles.fontSize};
+                     color:${getUrlColor()};
                      word-break:break-all;
-                     line-height:1.2;
+                     line-height:${urlStyles.lineHeight};
+                     font-weight:${urlStyles.fontWeight};
+                     letter-spacing:${urlStyles.letterSpacing}ch;
+                     font-family:${urlStyles.fontFamily};
                    ">
                 ${escapeHTML(window.location.href)}
               </div>
@@ -418,7 +507,7 @@
 
     const container = document.createElement('div');
     container.id = 'jpp-root';
-    container.innerHTML = renderTopBar() + `
+    container.innerHTML = renderTopBar(urlStyles) + `
       <div class="jpp-tree" style="
         font-family:monospace;
         font-size:${fontSize}px;
@@ -456,7 +545,25 @@
       currentTheme = e.target.value;
       Object.assign(COLORS, THEMES[currentTheme]);
       keyColor = COLORS.key;
-      applyThemeStyles();
+      // Reset highlight and url color to theme default if not custom
+      if (!customHighlightColor) {
+        applyThemeStyles();
+        container.querySelectorAll('.jpp-highlight').forEach(el => {
+          el.style.background = getHighlightColor();
+        });
+      } else {
+        applyThemeStyles();
+        container.querySelectorAll('.jpp-highlight').forEach(el => {
+          el.style.background = getHighlightColor();
+        });
+      }
+      if (!customUrlColor) {
+        urlStyles.color = getUrlColor();
+        const urlDiv = container.querySelector('.jpp-url');
+        if (urlDiv) urlDiv.style.color = urlStyles.color;
+        const urlColorInput = container.querySelector('.jpp-url-color');
+        if (urlColorInput) urlColorInput.value = getUrlColor();
+      }
       safeRender(json);
     });
 
@@ -490,59 +597,18 @@
     });
 
     // Key color picker
-    const colorPreview = container.querySelector('.jpp-key-color-preview');
-    const colorInput = container.querySelector('.jpp-key-color-picker');
-    let pickerOpen = false;
-    let lastColor = keyColor;
-    if (colorPreview && colorInput) {
-      // Show color picker when preview is clicked
-      colorPreview.addEventListener('click', (e) => {
-        colorInput.style.display = 'block';
-        colorInput.focus();
-        pickerOpen = true;
-        lastColor = keyColor;
-        e.stopPropagation();
-      });
-      // Live update color as user picks (update preview, .jpp-tree, and all key spans)
-      colorInput.addEventListener('input', (e) => {
+    const keyColorInput = container.querySelector('.jpp-key-color-picker');
+    if (keyColorInput) {
+      keyColorInput.addEventListener('input', (e) => {
         keyColor = e.target.value;
         COLORS.key = keyColor;
-        colorPreview.style.background = keyColor;
-        const tree = container.querySelector('.jpp-tree');
-        if (tree) tree.style.color = keyColor;
         // Update all key spans live
         container.querySelectorAll('.jpp-key').forEach(span => {
           span.style.color = keyColor;
         });
-      });
-      // Prevent closing when interacting with picker
-      colorInput.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-      });
-      // Hide picker and set color when clicking outside
-      const handleOutside = function(e) {
-        if (pickerOpen) {
-          if (!colorInput.contains(e.target) && !colorPreview.contains(e.target)) {
-            colorInput.style.display = 'none';
-            pickerOpen = false;
-            document.removeEventListener('mousedown', handleOutside);
-            // Only re-render if color changed
-            if (keyColor !== lastColor) safeRender(json);
-          }
-        }
-      };
-      document.addEventListener('mousedown', handleOutside);
-      // Hide picker on blur (if not focused inside picker)
-      colorInput.addEventListener('blur', () => {
-        setTimeout(() => {
-          if (pickerOpen) {
-            colorInput.style.display = 'none';
-            pickerOpen = false;
-            document.removeEventListener('mousedown', handleOutside);
-            // Only re-render if color changed
-            if (keyColor !== lastColor) safeRender(json);
-          }
-        }, 150);
+        // Update tree color live
+        const tree = container.querySelector('.jpp-tree');
+        if (tree) tree.style.color = keyColor;
       });
     }
 
@@ -588,6 +654,87 @@
         document.removeEventListener('mousedown', clear);
       }
     });
+
+    // URL manager events
+    const urlColor = container.querySelector('.jpp-url-color');
+    const urlResetBtn = container.querySelector('.jpp-url-reset');
+    const urlFontSize = container.querySelector('.jpp-url-fontsize');
+    const urlFontWeight = container.querySelector('.jpp-url-fontweight');
+    const urlLineHeight = container.querySelector('.jpp-url-lineheight');
+    const urlLetterSpacing = container.querySelector('.jpp-url-letterspacing');
+    const urlFontFamily = container.querySelector('.jpp-url-fontfamily');
+    const urlDiv = container.querySelector('.jpp-url');
+    if (urlColor && urlDiv) {
+      urlColor.addEventListener('input', e => {
+        customUrlColor = e.target.value || null;
+        urlStyles.color = getUrlColor();
+        urlDiv.style.color = urlStyles.color;
+      });
+    }
+    if (urlResetBtn && urlDiv) {
+      urlResetBtn.addEventListener('click', () => {
+        customUrlColor = null;
+        urlStyles.color = getUrlColor();
+        urlDiv.style.color = urlStyles.color;
+        if (urlColor) urlColor.value = getThemeUrlColor();
+      });
+    }
+    if (urlFontSize && urlDiv) {
+      urlFontSize.addEventListener('input', e => {
+        urlStyles.fontSize = e.target.value + 'px';
+        urlDiv.style.fontSize = urlStyles.fontSize;
+      });
+    }
+    if (urlFontWeight && urlDiv) {
+      urlFontWeight.addEventListener('change', e => {
+        urlStyles.fontWeight = e.target.value;
+        urlDiv.style.fontWeight = urlStyles.fontWeight;
+      });
+    }
+    if (urlLineHeight && urlDiv) {
+      urlLineHeight.addEventListener('input', e => {
+        urlStyles.lineHeight = e.target.value;
+        urlDiv.style.lineHeight = urlStyles.lineHeight;
+      });
+    }
+    if (urlLetterSpacing && urlDiv) {
+      urlLetterSpacing.addEventListener('input', e => {
+        urlStyles.letterSpacing = e.target.value;
+        urlDiv.style.letterSpacing = urlStyles.letterSpacing + 'ch';
+      });
+    }
+    if (urlFontFamily && urlDiv) {
+      urlFontFamily.addEventListener('change', e => {
+        urlStyles.fontFamily = e.target.value;
+        urlDiv.style.fontFamily = urlStyles.fontFamily;
+      });
+    }
+
+    // Highlight color picker events
+    const highlightColorInput = container.querySelector('.jpp-highlight-color-picker');
+    const highlightResetBtn = container.querySelector('.jpp-highlight-reset');
+    if (highlightColorInput) {
+      highlightColorInput.addEventListener('input', e => {
+        customHighlightColor = e.target.value || null;
+        applyThemeStyles();
+        // Update all highlights live
+        container.querySelectorAll('.jpp-highlight').forEach(el => {
+          el.style.background = getHighlightColor();
+        });
+      });
+    }
+    if (highlightResetBtn) {
+      highlightResetBtn.addEventListener('click', () => {
+        customHighlightColor = null;
+        applyThemeStyles();
+        // Update all highlights live
+        container.querySelectorAll('.jpp-highlight').forEach(el => {
+          el.style.background = getHighlightColor();
+        });
+        // Also reset the color picker input to theme default
+        if (highlightColorInput) highlightColorInput.value = getHighlightColorHex();
+      });
+    }
   }
 
   // ====================== BOOTSTRAP ======================
