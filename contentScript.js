@@ -11,17 +11,19 @@
 
   // THEMES (3 light / 3 dark)
   const THEMES = {
-    "Midnight Neon" : { bg:"#181a1b", key:"#fff", string:"#00e6e6", number:"#ffd700", boolean:"#ff6f00", null:"#ff3b3b", url:"#2196f3" },
-    "Graphite Dark" : { bg:"#121212", key:"#b0b0b0", string:"#6ad1e3", number:"#f6d55c", boolean:"#ed553b", null:"#ff3b3b", url:"#4ea1f3" },
-    "Solar Dark"    : { bg:"#002b36", key:"#93a1a1", string:"#2aa198", number:"#b58900", boolean:"#cb4b16", null:"#dc322f", url:"#268bd2" },
-    "Paper White"   : { bg:"#ffffff", key:"#333", string:"#008b8b", number:"#a67c00", boolean:"#cc5500", null:"#d00000", url:"#0b5ed7" },
-    "Slate Light"   : { bg:"#f5f7fa", key:"#222", string:"#007f8c", number:"#b38600", boolean:"#cc4e00", null:"#c20000", url:"#005bcc" },
-    "Solar Light"   : { bg:"#fdf6e3", key:"#657b83", string:"#2aa198", number:"#b58900", boolean:"#cb4b16", null:"#dc322f", url:"#268bd2" }
+    "Midnight Neon" : { bg: "#181a1b", key: "#ffffff", string: "#00e6e6", number: "#ffd700", boolean: "#ff6f00", null: "#ff3b3b", url: "#2196f3" },
+    "Graphite Dark" : { bg: "#121212", key: "#b0b0b0", string: "#6ad1e3", number: "#f6d55c", boolean: "#ed553b", null: "#ff3b3b", url: "#4ea1f3" },
+    "Solar Dark"    : { bg: "#002b36", key: "#93a1a1", string: "#2aa198", number: "#b58900", boolean: "#cb4b16", null: "#dc322f", url: "#268bd2" },
+    "Paper White"   : { bg: "#ffffff", key: "#333333", string: "#008b8b", number: "#a67c00", boolean: "#cc5500", null: "#d00000", url: "#0b5ed7" },
+    "Slate Light"   : { bg: "#f5f7fa", key: "#222222", string: "#007f8c", number: "#b38600", boolean: "#cc4e00", null: "#c20000", url: "#005bcc" },
+    "Solar Light"   : { bg: "#fdf6e3", key: "#657b83", string: "#2aa198", number: "#b58900", boolean: "#cb4b16", null: "#dc322f", url: "#268bd2" }
   };
   let currentTheme = "Midnight Neon";
 
   let keyColor = THEMES[currentTheme].key;
-  const keyPalette = ['#fff', '#ffb300', '#00e6e6', '#00bfff', '#ff3b3b', '#00ff99', '#ffd700', '#b0b0b0', '#000000'];
+  const keyPalette = [
+    '#ffffff', '#ffb300', '#00e6e6', '#00bfff', '#ff3b3b', '#00ff99', '#ffd700', '#b0b0b0', '#000000'
+  ];
 
   const COLORS = { ...THEMES[currentTheme], key: keyColor };
 
@@ -149,7 +151,7 @@
                    style="margin-left:${(level + INDENT)}ch;"
                  >`;
         if (!isArray) {
-          html += `<span style="color:${COLORS.key};">"${k}"</span>: `;
+          html += `<span class="jpp-key" style="color:${COLORS.key};">"${k}"</span>: `;
         }
         html += syntaxHighlight(
           value[k],
@@ -195,24 +197,19 @@
   }
 
   function renderKeyPalette() {
-    return `<div style="display:inline-flex;gap:6px;align-items:center;margin-left:12px;">
-      <span style="color:#aaa;font-size:13px;">Key color:</span>
-      ${keyPalette.map(color => `
-        <span
-          class="jpp-key-color"
-          data-color="${color}"
-          style="
-            display:inline-block;
-            width:18px;
-            height:18px;
-            border-radius:4px;
-            background:${color};
-            border:2px solid ${keyColor===color?'#2196f3':'#444'};
-            cursor:pointer;
-          "
-        ></span>
-      `).join('')}
-    </div>`;
+    return `<div style="display:inline-flex;gap:6px;align-items:center;margin-left:12px;position:relative;">
+    <span style="color:#aaa;font-size:13px;">Key color:</span>
+    <span class="jpp-key-color-preview"
+      style="display:inline-block;width:18px;height:18px;border-radius:4px;background:${keyColor};border:2px solid #2196f3;cursor:pointer;vertical-align:middle;"
+      tabindex="0"
+    ></span>
+    <input
+      type="color"
+      class="jpp-key-color-picker"
+      value="${keyColor}"
+      style="display:none;position:absolute;left:0;top:28px;z-index:1001;box-shadow:0 2px 8px rgba(0,0,0,0.15);border:none;padding:0;width:36px;height:36px;background:transparent;cursor:pointer;"
+    >
+  </div>`;
   }
 
   function renderThemeSelect() {
@@ -493,13 +490,61 @@
     });
 
     // Key color picker
-    container.querySelectorAll('.jpp-key-color').forEach(el => {
-      el.onclick = () => {
-        keyColor = el.getAttribute('data-color');
+    const colorPreview = container.querySelector('.jpp-key-color-preview');
+    const colorInput = container.querySelector('.jpp-key-color-picker');
+    let pickerOpen = false;
+    let lastColor = keyColor;
+    if (colorPreview && colorInput) {
+      // Show color picker when preview is clicked
+      colorPreview.addEventListener('click', (e) => {
+        colorInput.style.display = 'block';
+        colorInput.focus();
+        pickerOpen = true;
+        lastColor = keyColor;
+        e.stopPropagation();
+      });
+      // Live update color as user picks (update preview, .jpp-tree, and all key spans)
+      colorInput.addEventListener('input', (e) => {
+        keyColor = e.target.value;
         COLORS.key = keyColor;
-        safeRender(json);
+        colorPreview.style.background = keyColor;
+        const tree = container.querySelector('.jpp-tree');
+        if (tree) tree.style.color = keyColor;
+        // Update all key spans live
+        container.querySelectorAll('.jpp-key').forEach(span => {
+          span.style.color = keyColor;
+        });
+      });
+      // Prevent closing when interacting with picker
+      colorInput.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      });
+      // Hide picker and set color when clicking outside
+      const handleOutside = function(e) {
+        if (pickerOpen) {
+          if (!colorInput.contains(e.target) && !colorPreview.contains(e.target)) {
+            colorInput.style.display = 'none';
+            pickerOpen = false;
+            document.removeEventListener('mousedown', handleOutside);
+            // Only re-render if color changed
+            if (keyColor !== lastColor) safeRender(json);
+          }
+        }
       };
-    });
+      document.addEventListener('mousedown', handleOutside);
+      // Hide picker on blur (if not focused inside picker)
+      colorInput.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (pickerOpen) {
+            colorInput.style.display = 'none';
+            pickerOpen = false;
+            document.removeEventListener('mousedown', handleOutside);
+            // Only re-render if color changed
+            if (keyColor !== lastColor) safeRender(json);
+          }
+        }, 150);
+      });
+    }
 
     // Font size
     const slider = container.querySelector('.jpp-font-slider');
