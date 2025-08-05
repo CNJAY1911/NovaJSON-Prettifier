@@ -123,20 +123,32 @@
         overflow:auto;
         background:${COLORS.bg};
       }
-      .jpp-tree { position:relative; margin-left:20px !important; color:${COLORS.key}; }
+      .jpp-tree { position:relative; margin-left:56px !important; color:${COLORS.key}; z-index:1; }
       .jpp-tree::before {
         content:"";
-        position:absolute;
-        top:0; left:8px; bottom:0;
+        position:fixed;
+        top:0; left:40px; bottom:0;
         width:4px;
+        z-index:10001;
+        pointer-events:none;
         background: radial-gradient(circle, rgba(128,128,128,0.5) 25%, transparent 25%) repeat-y;
         background-size:4px 4px;
+        display:block;
       }
-      /* ORIGINAL SMALL TOGGLE AREA */
       .jpp-toggle {
-        position:absolute !important;
-        left:-20px !important;
-        cursor:pointer; user-select:none;
+        position: absolute !important;
+        left: -48px !important;
+        cursor: pointer;
+        user-select: none;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        touch-action: manipulation;            /* hint for instant taps */
+        -webkit-tap-highlight-color: transparent; /* no highlight flash */
+        z-index: 10002; /* make sure it sits on top */
       }
       .jpp-highlight { background:${getHighlightColor()} !important; }
       .jpp-theme-select {
@@ -144,6 +156,41 @@
       }
       .jpp-theme-select.light { background:#e0e0e0; color:#333; }
       .jpp-url-manager { margin-top:0 !important; margin-bottom:0 !important; padding:0 !important; }
+      #jpp-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 36px;
+        height: 100vh;
+        background: #222;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 60px;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+      }
+      .jpp-sidebar-toggle {
+        width: 12px;
+        height: 36px;
+        margin: 6px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 20px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background 0.2s;
+      }
+      .jpp-sidebar-toggle.active {
+        background: #444;
+      }
+      .jpp-sidebar-toggle:hover {
+        background: #333;
+      }
     `;
     (document.head || document.documentElement).appendChild(style);
     document.body && (document.body.style.background = COLORS.bg);
@@ -344,19 +391,19 @@
              ">
               <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0;">
-                  <button class="jpp-expand" style="background:#222;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">
-                    Expand All
-                  </button>
-                  <button class="jpp-collapse" style="background:#222;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">
-                    Collapse All
-                  </button>
-                  ${renderKeyPalette()}
-                  ${renderThemeSelect()}
-                  ${renderFontSizeSlider()}
-                  ${renderHighlightColorPicker()}
+                  ${typeof renderKeyPalette === 'function' ? renderKeyPalette() : ''}
+                  ${typeof renderThemeSelect === 'function' ? renderThemeSelect() : ''}
+                  ${typeof renderFontSizeSlider === 'function' ? renderFontSizeSlider() : ''}
+                  ${typeof renderHighlightColorPicker === 'function' ? renderHighlightColorPicker() : ''}
+                  ${typeof renderUrlManager === 'function' ? renderUrlManager(urlStyles) : ''}
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                  ${renderUrlManager(urlStyles)}
+                  <button class="jpp-expand" style="background:#222456;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">
+                    Expand All
+                  </button>
+                  <button class="jpp-collapse" style="background:#222456;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">
+                    Collapse All
+                  </button>
                 </div>
               </div>
               <div class="jpp-url" style="
@@ -580,17 +627,27 @@
       safeRender(json);
     });
 
-    // Node toggle
-    container.querySelectorAll('.jpp-toggle').forEach(el => {
-      el.onclick = e => {
-        const path = el.getAttribute('data-path');
+    // Initialize all toggles in one pass: position + instant handlers
+    const tree = container.querySelector('.jpp-tree');
+    tree.querySelectorAll('.jpp-toggle').forEach(toggle => {
+      // 1️⃣ Position exactly at its line
+      const line = toggle.closest('.jpp-line') || toggle.parentElement;
+      toggle.style.position    = 'absolute';
+      toggle.style.top         = `${line.offsetTop}px`;
+      toggle.style.left        = '-48px';            // 36px sidebar + center arrow
+      toggle.style.touchAction = 'manipulation';     // hint for instant taps
+
+      toggle.onclick = e => {
+        e.stopPropagation();
+        const path = toggle.getAttribute('data-path');
         if (path !== rootPath) {
           expandState[path] = !expandState[path];
           safeRender(json);
         }
-        e.stopPropagation();
       };
     });
+
+
 
     // Collapsed click -> copy & expand
     container.querySelectorAll('.jpp-collapsed').forEach(el => {
@@ -761,11 +818,6 @@
     return;
   }
   // Clear the page before rendering the pretty-printed JSON
-  document.documentElement.innerHTML = '';
-  const pre = document.createElement('pre');
-  pre.id = 'novajson-raw';
-  pre.style.whiteSpace = 'pre-wrap';
-  pre.textContent = text;
-  document.body.appendChild(pre);
+  document.body.innerHTML = '';
   render(json);
 })();
