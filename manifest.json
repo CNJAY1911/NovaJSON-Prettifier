@@ -3,10 +3,6 @@
   "name": "NovaJSON Prettifier",
   "version": "2.0.0",
   "description": "Auto‑formats raw JSON (object or array roots). Detection, theme‑aware highlighting, color pickers, avoids double‑formatting.",
-  "permissions": [
-    "activeTab",
-    "scripting"
-  ],
   "icons": {
     "16":  "icons/icon16.png",
     "32":  "icons/icon32.png",
