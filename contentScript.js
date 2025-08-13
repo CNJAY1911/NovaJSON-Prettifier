@@ -1,12 +1,11 @@
 (function () {
   if (window.NovaJSONPrettifierActive) return;
   window.NovaJSONPrettifierActive = true;
-  // Robust JSON detection: support <pre> or raw body text
+
+  // ---------------- JSON detection ----------------
   function getRawJSONText() {
-    // Prefer <pre> if present
     const pre = document.querySelector('pre');
     if (pre) return pre.textContent.trim();
-    // Otherwise, try the whole body (for API responses)
     return document.body && document.body.childElementCount === 0
       ? document.body.textContent.trim()
       : null;
@@ -14,22 +13,26 @@
   function isRawJSON() {
     const text = getRawJSONText();
     if (!text) return false;
-    try { JSON.parse(text); return true; }
-    catch { return false; }
+    try { JSON.parse(text); return true; } catch { return false; }
   }
   if (!isRawJSON()) return;
 
-  // ====================== UTILITIES & GLOBAL STATE ======================
+  // ---------------- UTIL & GLOBAL ----------------
   function isURL(str) { return /^https?:\/\//.test(str); }
   function escapeHTML(str) {
     return String(str)
       .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
+      .replace(/</g, "&lt;")   // fixed: was /<//g
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
+  // robust CSS attribute value escape (falls back if CSS.escape not present)
+  function cssEscapeAttr(val) {
+    if (window.CSS && typeof CSS.escape === "function") return CSS.escape(val);
+    // very small fallback for our [data-jpp-path="..."] usage
+    return String(val).replace(/"/g, '\\"');
+  }
 
-  // THEMES (3 light / 3 dark)
   const THEMES = {
     "Midnight Neon" : { bg: "#181a1b", key: "#ffffff", string: "#00e6e6", number: "#ffd700", boolean: "#ff6f00", null: "#ff3b3b", url: "#2196f3" },
     "Graphite Dark" : { bg: "#121212", key: "#b0b0b0", string: "#6ad1e3", number: "#f6d55c", boolean: "#ed553b", null: "#ff3b3b", url: "#4ea1f3" },
@@ -39,19 +42,27 @@
     "Solar Light"   : { bg: "#fdf6e3", key: "#657b83", string: "#2aa198", number: "#b58900", boolean: "#cb4b16", null: "#dc322f", url: "#268bd2" }
   };
   let currentTheme = "Midnight Neon";
-
   let keyColor = THEMES[currentTheme].key;
-  const keyPalette = [
-    '#ffffff', '#ffb300', '#00e6e6', '#00bfff', '#ff3b3b', '#00ff99', '#ffd700', '#b0b0b0', '#000000'
-  ];
-
   const COLORS = { ...THEMES[currentTheme], key: keyColor };
 
-  // Add to global state
   let customHighlightColor = null;
   let customUrlColor = null;
 
-  // Default URL styles
+  function getThemeHighlightColor() {
+    const bg = COLORS.bg.toLowerCase();
+    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(bg) || (bg.startsWith('#') && parseInt(bg.slice(1),16) > 0xaaaaaa);
+    return isLight ? 'rgba(255, 230, 0, 0.35)' : 'rgba(255, 255, 100, 0.35)';
+  }
+  function getHighlightColor() { return customHighlightColor || getThemeHighlightColor(); }
+  function getThemeUrlColor() { return COLORS.number; }
+  function getUrlColor() { return customUrlColor || getThemeUrlColor(); }
+  function getHighlightColorHex() {
+    if (customHighlightColor) return customHighlightColor;
+    const bg = COLORS.bg.toLowerCase();
+    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(bg) || (bg.startsWith('#') && parseInt(bg.slice(1),16) > 0xaaaaaa);
+    return isLight ? '#fff700' : '#fff964';
+  }
+
   let urlStyles = {
     color: getUrlColor(),
     fontSize: '16px',
@@ -67,41 +78,9 @@
   const rootPath = '__JPP_ROOT__';
   let rootJson = null;
   let highlightPath = null;
-
   let lastScrollTop = 0;
 
-  // Theme-adaptive highlight color logic
-  function getThemeHighlightColor() {
-    // Light/dark detection based on bg color
-    const bg = COLORS.bg.toLowerCase();
-    // Simple heuristic: if bg is very light, use a darker highlight; else, use a light/yellowish one
-    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(bg) || (bg.startsWith('#') && parseInt(bg.replace('#',''),16) > 0xaaaaaa);
-    return isLight ? 'rgba(255, 230, 0, 0.35)' : 'rgba(255, 255, 100, 0.35)';
-  }
-
-  function getHighlightColor() {
-    return customHighlightColor || getThemeHighlightColor();
-  }
-  function getThemeUrlColor() {
-    // Use the theme's number color for URL text, but ensure contrast
-    return COLORS.number;
-  }
-  function getUrlColor() {
-    return customUrlColor || getThemeUrlColor();
-  }
-
-  // Add a function to get a hex color for the color picker
-  function getHighlightColorHex() {
-    // If user picked a custom color, use it
-    if (customHighlightColor) return customHighlightColor;
-    // Otherwise, return a theme-appropriate yellow hex
-    const bg = COLORS.bg.toLowerCase();
-    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(bg) || (bg.startsWith('#') && parseInt(bg.replace('#',''),16) > 0xaaaaaa);
-    // Use a yellow that is visible on both backgrounds
-    return isLight ? '#fff700' : '#fff964';
-  }
-
-  // ====================== STYLE INJECTION ======================
+  // ---------------- STYLES ----------------
   function applyThemeStyles() {
     let style = document.getElementById('jpp-styles');
     if (!style) {
@@ -110,103 +89,44 @@
     }
     style.textContent = `
       @import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Source+Code+Pro:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;700&family=Roboto+Mono:wght@400;500;700&family=Inconsolata:wght@400;700&display=swap');
-      html, body {
-        margin:0 !important;
-        padding:0 !important;
-        height:100% !important;
-        background:${COLORS.bg} !important;
-      }
+      html, body { margin:0 !important; padding:0 !important; height:100% !important; background:${COLORS.bg} !important; }
       pre, body > div, body > pre { background:none !important; }
-      #jpp-root {
-        position:fixed;
-        top:0; left:0; right:0; bottom:0;
-        overflow:auto;
-        background:${COLORS.bg};
-      }
+      #jpp-root { position:fixed; top:0; left:0; right:0; bottom:0; overflow:auto; background:${COLORS.bg}; }
       .jpp-tree { position:relative; margin-left:56px !important; color:${COLORS.key}; z-index:1; }
       .jpp-tree::before {
-        content:"";
-        position:fixed;
-        top:0; left:40px; bottom:0;
-        width:4px;
-        z-index:10001;
-        pointer-events:none;
-        background: radial-gradient(circle, rgba(128,128,128,0.5) 25%, transparent 25%) repeat-y;
-        background-size:4px 4px;
-        display:block;
+        content:""; position:fixed; top:0; left:40px; bottom:0; width:4px; z-index:10001; pointer-events:none;
+        background: radial-gradient(circle, rgba(128,128,128,0.5) 25%, transparent 25%) repeat-y; background-size:4px 4px; display:block;
       }
       .jpp-toggle {
         position: absolute !important;
         left: -48px !important;
-        cursor: pointer;
-        user-select: none;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        touch-action: manipulation;            /* hint for instant taps */
-        -webkit-tap-highlight-color: transparent; /* no highlight flash */
-        z-index: 10002; /* make sure it sits on top */
+        cursor: pointer; user-select: none; width: 20px; height: 20px;
+        display: flex; align-items: center; justify-content: center; font-size: 16px;
+        touch-action: manipulation; -webkit-tap-highlight-color: transparent; z-index: 10002;
       }
       .jpp-highlight { background:${getHighlightColor()} !important; }
-      .jpp-theme-select {
-        background:#222; color:#fff; border:none; padding:6px 8px; border-radius:4px; cursor:pointer; font-size:13px;
-      }
+      .jpp-theme-select { background:#222; color:#fff; border:none; padding:6px 8px; border-radius:4px; cursor:pointer; font-size:13px; }
       .jpp-theme-select.light { background:#e0e0e0; color:#333; }
       .jpp-url-manager { margin-top:0 !important; margin-bottom:0 !important; padding:0 !important; }
-      #jpp-sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 36px;
-        height: 100vh;
-        background: #222;
-        z-index: 10000;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding-top: 60px;
-        box-shadow: 2px 0 8px rgba(0,0,0,0.08);
-      }
-      .jpp-sidebar-toggle {
-        width: 12px;
-        height: 36px;
-        margin: 6px 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: none;
-        border: none;
-        color: #fff;
-        font-size: 20px;
-        cursor: pointer;
-        border-radius: 6px;
-        transition: background 0.2s;
-      }
-      .jpp-sidebar-toggle.active {
-        background: #444;
-      }
-      .jpp-sidebar-toggle:hover {
-        background: #333;
-      }
+      #jpp-sidebar { position: fixed; top: 0; left: 0; width: 36px; height: 100vh; background: #222; z-index: 10000;
+        display: flex; flex-direction: column; align-items: center; padding-top: 60px; box-shadow: 2px 0 8px rgba(0,0,0,0.08); }
+      .jpp-sidebar-toggle { width: 12px; height: 36px; margin: 6px 0; display: flex; align-items: center; justify-content: center;
+        background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; border-radius: 6px; transition: background 0.2s; }
+      .jpp-sidebar-toggle.active { background: #444; }
+      .jpp-sidebar-toggle:hover { background: #333; }
     `;
     (document.head || document.documentElement).appendChild(style);
-    document.body && (document.body.style.background = COLORS.bg);
+    if (document.body) document.body.style.background = COLORS.bg;
   }
   applyThemeStyles();
 
-  // ====================== HELPERS ======================
+  // ---------------- HELPERS ----------------
   function copyToClipboard(text) {
     if (navigator.clipboard) navigator.clipboard.writeText(text);
     else {
       const ta = document.createElement('textarea');
-      ta.value = text;
-      (document.body || document.documentElement).appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      ta.remove();
+      ta.value = text; (document.body || document.documentElement).appendChild(ta);
+      ta.select(); document.execCommand('copy'); ta.remove();
     }
   }
 
@@ -214,7 +134,8 @@
     if (!path) return json;
     let cur = json;
     const parts = path.match(/(?:\[[^\]]+\]|\.[^\.\[]+)+/g) || [];
-    for (let p of parts) {
+    for (let seg of (parts.length ? parts[0].match(/(?:\[[^\]]+\]|\.[^\.\[]+)/g) : [])) {
+      let p = seg;
       if (p.startsWith('.')) p = p.slice(1);
       if (p.startsWith('[') && p.endsWith(']')) p = p.slice(1, -1);
       if (cur && typeof cur === 'object') cur = cur[p];
@@ -223,6 +144,44 @@
     return cur;
   }
 
+  function getParentPath(path) {
+    if (!path || path === rootPath) return null;
+    const m = path.match(/(.*)(?:\[[^\]]+\]|\.[^.\[]+)$/);
+    return m ? m[1] : null;
+  }
+  function getLastKeyFromPath(path) {
+    const m = path.match(/(?:\.([^.\[]+))$|(?:\[(\d+)\]$)/);
+    return m ? (m[1] ?? m[2]) : null;
+  }
+  function isParentArray(path) {
+    const pp = getParentPath(path);
+    const parent = pp ? getValueAtPath(rootJson, pp) : null;
+    return Array.isArray(parent);
+  }
+  function isLastInParent(path) {
+    const pp = getParentPath(path);
+    if (!pp) return true;
+    const parent = getValueAtPath(rootJson, pp);
+    if (parent && typeof parent === 'object') {
+      const keys = Object.keys(parent);
+      const lk = String(getLastKeyFromPath(path));
+      return keys.indexOf(lk) === keys.length - 1;
+    }
+    return true;
+  }
+
+  function repositionAllToggles() {
+    const tree = document.querySelector('.jpp-tree');
+    if (!tree) return;
+    tree.querySelectorAll('.jpp-toggle').forEach(t => {
+      const line = t.closest('.jpp-line') || t.parentElement;
+      t.style.position = 'absolute';
+      t.style.left = '-48px';
+      t.style.top = `${line.offsetTop}px`;
+    });
+  }
+
+  // ---------------- RENDERERS ----------------
   function syntaxHighlight(value, keyPath, level, isLast, parentIsArray, isRoot) {
     if (typeof value === 'object' && value !== null) {
       const isArray = Array.isArray(value);
@@ -275,15 +234,13 @@
       return html;
     }
 
-    // Primitive values (escape HTML so it never renders)
+    // primitives
     let val;
     if (typeof value === 'string') {
       const safe = escapeHTML(value);
-      if (isURL(value)) {
-        val = `<a href="${safe}" target="_blank" style="color:${COLORS.url};text-decoration:underline;">"${safe}"</a>`;
-      } else {
-        val = `<span style="color:${COLORS.string};">"${safe}"</span>`;
-      }
+      val = isURL(value)
+        ? `<a href="${safe}" target="_blank" style="color:${COLORS.url};text-decoration:underline;">"${safe}"</a>`
+        : `<span style="color:${COLORS.string};">"${safe}"</span>`;
     } else if (typeof value === 'number') {
       val = `<span style="color:${COLORS.number};">${value}</span>`;
     } else if (typeof value === 'boolean') {
@@ -304,15 +261,9 @@
 
   function renderKeyPalette() {
     return `<div style="display:inline-flex;gap:6px;align-items:center;margin-left:12px;position:relative;">
-    <span style="color:#aaa;font-size:13px;">Key color:</span>
-    <input
-      type="color"
-      class="jpp-key-color-picker"
-      value="${keyColor}"
-      title="Key Color"
-      style="width:24px;height:24px;border:none;cursor:pointer;vertical-align:middle;"
-    >
-  </div>`;
+      <span style="color:#aaa;font-size:13px;">Key color:</span>
+      <input type="color" class="jpp-key-color-picker" value="${keyColor}" title="Key Color" style="width:24px;height:24px;border:none;cursor:pointer;vertical-align:middle;">
+    </div>`;
   }
 
   function renderThemeSelect() {
@@ -325,33 +276,18 @@
   function renderFontSizeSlider() {
     return `<div style="display:inline-flex;align-items:center;margin-left:18px;gap:6px;">
       <span style="color:#aaa;font-size:13px;">Font size:</span>
-      <input
-        type="range"
-        min="12"
-        max="28"
-        value="${fontSize}"
-        class="jpp-font-slider"
-        style="vertical-align:middle;"
-      >
-      <span
-        class="jpp-font-size-label"
-        style="color:#aaa;font-size:13px;min-width:24px;display:inline-block;"
-      >${fontSize}px</span>
+      <input type="range" min="12" max="28" value="${fontSize}" class="jpp-font-slider" style="vertical-align:middle;">
+      <span class="jpp-font-size-label" style="color:#aaa;font-size:13px;min-width:24px;display:inline-block;">${fontSize}px</span>
     </div>`;
   }
 
   function renderUrlManager(urlStyles) {
     const fonts = [
-      { name: 'Fira Mono', css: 'Fira Mono, monospace' },
-      { name: 'JetBrains Mono', css: 'JetBrains Mono, monospace' },
-      { name: 'Source Code Pro', css: 'Source Code Pro, monospace' },
-      { name: 'IBM Plex Mono', css: 'IBM Plex Mono, monospace' },
-      { name: 'Roboto Mono', css: 'Roboto Mono, monospace' },
-      { name: 'Inconsolata', css: 'Inconsolata, monospace' },
-      { name: 'Menlo', css: 'Menlo, monospace' },
-      { name: 'Consolas', css: 'Consolas, monospace' },
-      { name: 'Courier New', css: 'Courier New, monospace' },
-      { name: 'monospace', css: 'monospace' }
+      { name: 'Fira Mono', css: 'Fira Mono, monospace' }, { name: 'JetBrains Mono', css: 'JetBrains Mono, monospace' },
+      { name: 'Source Code Pro', css: 'Source Code Pro, monospace' }, { name: 'IBM Plex Mono', css: 'IBM Plex Mono, monospace' },
+      { name: 'Roboto Mono', css: 'Roboto Mono, monospace' }, { name: 'Inconsolata', css: 'Inconsolata, monospace' },
+      { name: 'Menlo', css: 'Menlo, monospace' }, { name: 'Consolas', css: 'Consolas, monospace' },
+      { name: 'Courier New', css: 'Courier New, monospace' }, { name: 'monospace', css: 'monospace' }
     ];
     return `<div class="jpp-url-manager" style="display:flex;align-items:center;gap:8px;margin:0;padding:0;flex-wrap:wrap;">
       <span style="color:#aaa;font-size:13px;">URL text:</span>
@@ -374,112 +310,122 @@
 
   function renderHighlightColorPicker() {
     return `<div style="display:inline-flex;align-items:center;gap:6px;">
-    <span style="color:#aaa;font-size:13px;">Highlight:</span>
-    <input type="color" class="jpp-highlight-color-picker" value="${getHighlightColorHex()}" title="Highlight Color" style="width:24px;height:24px;border:none;cursor:pointer;vertical-align:middle;">
-    <button class="jpp-highlight-reset" style="margin-left:2px;padding:2px 6px;font-size:12px;">Reset</button>
-  </div>`;
+      <span style="color:#aaa;font-size:13px;">Highlight:</span>
+      <input type="color" class="jpp-highlight-color-picker" value="${getHighlightColorHex()}" title="Highlight Color" style="width:24px;height:24px;border:none;cursor:pointer;vertical-align:middle;">
+      <button class="jpp-highlight-reset" style="margin-left:2px;padding:2px 6px;font-size:12px;">Reset</button>
+    </div>`;
   }
 
   function renderTopBar(urlStyles) {
-    return `<div class="jpp-topbar" style="
-               position:sticky;
-               top:0;
-               z-index:10;
-               background:${COLORS.bg};
-               padding:10px 18px 10px 12px;
-               border-bottom:1px solid #222;
-             ">
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:space-between;">
-                <div style="display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0;">
-                  ${typeof renderKeyPalette === 'function' ? renderKeyPalette() : ''}
-                  ${typeof renderThemeSelect === 'function' ? renderThemeSelect() : ''}
-                  ${typeof renderFontSizeSlider === 'function' ? renderFontSizeSlider() : ''}
-                  ${typeof renderHighlightColorPicker === 'function' ? renderHighlightColorPicker() : ''}
-                  ${typeof renderUrlManager === 'function' ? renderUrlManager(urlStyles) : ''}
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                  <button class="jpp-expand" style="background:#222456;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">
-                    Expand All
-                  </button>
-                  <button class="jpp-collapse" style="background:#222456;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">
-                    Collapse All
-                  </button>
-                </div>
-              </div>
-              <div class="jpp-url" style="
-                     width:100%;
-                     margin-top:20px;
-                     font-size:${urlStyles.fontSize};
-                     color:${getUrlColor()};
-                     word-break:break-all;
-                     line-height:${urlStyles.lineHeight};
-                     font-weight:${urlStyles.fontWeight};
-                     letter-spacing:${urlStyles.letterSpacing}ch;
-                     font-family:${urlStyles.fontFamily};
-                   ">
-                ${escapeHTML(window.location.href)}
-              </div>
-            </div>`;
+    return `<div class="jpp-topbar" style="position:sticky; top:0; z-index:10; background:${COLORS.bg}; padding:10px 18px 10px 12px; border-bottom:1px solid #222;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0;">
+          ${renderKeyPalette()} ${renderThemeSelect()} ${renderFontSizeSlider()} ${renderHighlightColorPicker()} ${renderUrlManager(urlStyles)}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <button class="jpp-expand" style="background:#222456;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">Expand All</button>
+          <button class="jpp-collapse" style="background:#222456;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">Collapse All</button>
+        </div>
+      </div>
+      <div class="jpp-url" style="
+        width:100%; margin-top:20px; font-size:${urlStyles.fontSize}; color:${getUrlColor()};
+        word-break:break-all; line-height:${urlStyles.lineHeight}; font-weight:${urlStyles.fontWeight};
+        letter-spacing:${urlStyles.letterSpacing}ch; font-family:${urlStyles.fontFamily};">
+        ${escapeHTML(window.location.href)}
+      </div>
+    </div>`;
   }
 
-  // ====================== SAFE RENDER WRAPPER ======================
+  // ---------------- SAFE RENDER WRAPPER ----------------
   function safeRender(json, afterRenderCb) {
     const root = document.getElementById('jpp-root');
     lastScrollTop = root ? root.scrollTop : window.scrollY;
-
     render(json);
-
     requestAnimationFrame(() => {
       const newRoot = document.getElementById('jpp-root');
-      if (newRoot) newRoot.scrollTop = lastScrollTop;
-      else window.scrollTo(0, lastScrollTop);
+      if (newRoot) newRoot.scrollTop = lastScrollTop; else window.scrollTo(0, lastScrollTop);
       if (afterRenderCb) afterRenderCb();
     });
   }
 
-  // ====================== FIND POPUP ======================
+  // ---------------- PARTIAL RE-RENDER ----------------
+  function rerenderLine(path) {
+    const selector = `.jpp-line[data-jpp-path="${cssEscapeAttr(path)}"]`;
+    const line = document.querySelector(selector);
+    if (!line) { safeRender(rootJson); return; } // ultra-safe fallback, should be rare
+
+    const ml = parseFloat(line.style.marginLeft) || 0;
+    const level = Math.max(0, ml - INDENT);
+    const parentIsArray = isParentArray(path);
+    const lastKey = getLastKeyFromPath(path);
+    const isLast = isLastInParent(path);
+    const value = getValueAtPath(rootJson, path);
+
+    let html = '';
+    if (!parentIsArray && lastKey !== null) {
+      html += `<span class="jpp-key" style="color:${COLORS.key};">"${String(lastKey)}"</span>:`;
+    }
+    html += ' ' + syntaxHighlight(value, path, level, isLast, parentIsArray, false);
+
+    line.innerHTML = html;
+
+    initToggleHandlers(line);
+    initCollapsedHandlers(line);
+    requestAnimationFrame(repositionAllToggles);
+  }
+
+  function initToggleHandlers(scope) {
+    (scope || document).querySelectorAll('.jpp-toggle').forEach(toggle => {
+      const line = toggle.closest('.jpp-line') || toggle.parentElement;
+      toggle.style.position = 'absolute';
+      toggle.style.left = '-48px';
+      toggle.style.top = `${line.offsetTop}px`;
+      toggle.style.touchAction = 'manipulation';
+
+      toggle.onclick = e => {
+        e.stopPropagation();
+        const path = toggle.getAttribute('data-path');
+        if (!path || path === rootPath) return;
+        expandState[path] = !expandState[path];
+        rerenderLine(path);
+      };
+    });
+  }
+
+  function initCollapsedHandlers(scope) {
+    (scope || document).querySelectorAll('.jpp-collapsed').forEach(el => {
+      el.onclick = e => {
+        const path = el.getAttribute('data-path');
+        const v = getValueAtPath(rootJson, path);
+        let txt = typeof v === 'object' ? JSON.stringify(v, null, 2) : JSON.stringify(v);
+        if (path && !/\[\d+\]$/.test(path)) {
+          const key = path.split('.').pop().replace(/\[|\]/g, '');
+          txt = `"${key}": ${txt}`;
+        }
+        copyToClipboard(txt);
+        expandState[path] = true;
+        rerenderLine(path);
+        e.stopPropagation();
+      };
+    });
+  }
+
+  // ---------------- FIND POPUP (unchanged behavior) ----------------
   function createFindPopup() {
     if (document.getElementById('jpp-find-popup')) return;
     const popup = document.createElement('div');
     popup.id = 'jpp-find-popup';
     popup.innerHTML = `
-      <div style="
-            background:#23272e;
-            border-radius:8px 0 0 8px;
-            box-shadow:-2px 2px 12px #0006;
-            position:fixed;
-            top:40px;
-            right:0;
-            width:340px;
-            max-width:90vw;
-            height:340px;
-            z-index:99999;
-            display:flex;
-            flex-direction:column;
-          ">
+      <div style="background:#23272e;border-radius:8px 0 0 8px;box-shadow:-2px 2px 12px #0006;position:fixed;top:40px;right:0;width:340px;max-width:90vw;height:340px;z-index:99999;display:flex;flex-direction:column;">
         <div style="padding:10px 14px 6px 14px;display:flex;align-items:center;gap:8px;">
-          <input
-            id="jpp-find-input"
-            type="text"
-            placeholder="Find..."
-            style="flex:1;background:#181a1b;color:#fff;border:none;padding:7px 10px;border-radius:4px;font-size:15px;outline:none;"
-          />
-          <button
-            id="jpp-find-close"
-            style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;"
-          >×</button>
+          <input id="jpp-find-input" type="text" placeholder="Find..." style="flex:1;background:#181a1b;color:#fff;border:none;padding:7px 10px;border-radius:4px;font-size:15px;outline:none;"/>
+          <button id="jpp-find-close" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;">×</button>
         </div>
-        <div
-          id="jpp-find-results"
-          style="flex:1;overflow-y:auto;padding:8px 16px 8px 24px;color:#fff;"
-        ></div>
+        <div id="jpp-find-results" style="flex:1;overflow-y:auto;padding:8px 16px 8px 24px;color:#fff;"></div>
       </div>`;
     document.body.appendChild(popup);
 
-    document.getElementById('jpp-find-close').onclick = () => {
-      popup.remove();
-      highlightPath = null;
-    };
+    document.getElementById('jpp-find-close').onclick = () => { popup.remove(); highlightPath = null; };
 
     const input = document.getElementById('jpp-find-input');
     input.focus();
@@ -502,22 +448,12 @@
 
       const resDiv = document.getElementById('jpp-find-results');
       if (!term) { resDiv.innerHTML = ''; return; }
-      if (results.length === 0) {
-        resDiv.innerHTML = '<div style="color:#aaa;padding:12px;">No results</div>';
-        return;
-      }
+      if (results.length === 0) { resDiv.innerHTML = '<div style="color:#aaa;padding:12px;">No results</div>'; return; }
+
       resDiv.innerHTML = results.map(r => `
-        <div
-          class="jpp-find-result"
-          data-path="${r.path}"
-          style="padding:6px 0;cursor:pointer;color:#fff;"
-        >
+        <div class="jpp-find-result" data-path="${r.path}" style="padding:6px 0;cursor:pointer;color:#fff;">
           <span style="color:${COLORS.number};">${escapeHTML(r.key)}</span>:
-          <span style="color:${COLORS.string};">
-            ${typeof r.value === 'object'
-              ? (Array.isArray(r.value) ? '[...]' : '{...}')
-              : escapeHTML(JSON.stringify(r.value))}
-          </span>
+          <span style="color:${COLORS.string};">${typeof r.value === 'object' ? (Array.isArray(r.value) ? '[...]' : '{...}') : escapeHTML(JSON.stringify(r.value))}</span>
         </div>
       `).join('');
 
@@ -532,7 +468,7 @@
           segments.forEach(seg => { acc += seg; expandState[acc] = true; });
 
           safeRender(rootJson, () => {
-            const tgt = document.querySelector(`[data-jpp-path="${highlightPath}"]`);
+            const tgt = document.querySelector(`[data-jpp-path="${cssEscapeAttr(highlightPath)}"]`);
             if (tgt) tgt.scrollIntoView({ behavior: 'smooth', block: 'center' });
           });
         };
@@ -540,7 +476,7 @@
     };
   }
 
-  // ====================== MAIN RENDER ======================
+  // ---------------- MAIN RENDER ----------------
   function render(json) {
     rootJson = json;
 
@@ -550,12 +486,11 @@
       const full = rootPath + highlightPath;
       const segs = full.match(/(?:\[[^\]]+\]|\.[^\.\[]+)+/g) || [];
       let acc = rootPath;
-      segs.forEach(seg => { acc += seg; expandState[acc] = true; });
+      (segs.length ? segs[0].match(/(?:\[[^\]]+\]|\.[^\.\[]+)/g) : []).forEach(seg => { acc += seg; expandState[acc] = true; });
       highlightPath = full;
     }
 
-    const pre = document.querySelector('pre');
-    if (pre) pre.remove();
+    const pre = document.querySelector('pre'); if (pre) pre.remove();
     const old = document.getElementById('jpp-root');
     if (old) old.remove();
     else {
@@ -568,25 +503,13 @@
     const container = document.createElement('div');
     container.id = 'jpp-root';
     container.innerHTML = renderTopBar(urlStyles) + `
-      <div class="jpp-tree" style="
-        font-family:monospace;
-        font-size:${fontSize}px;
-        line-height:1.7;
-        letter-spacing:0.04em;
-        padding:18px;
-        color:${COLORS.key};
-      ">
+      <div class="jpp-tree" style="font-family:monospace; font-size:${fontSize}px; line-height:1.7; letter-spacing:0.04em; padding:18px; color:${COLORS.key};">
         ${renderTree(json)}
-      </div>
-    `;
+      </div>`;
     document.body.appendChild(container);
 
-    // Expand/Collapse
-    container.querySelector('.jpp-expand').onclick = () => {
-      highlightPath = null;
-      expandState = { [rootPath]: true };
-      safeRender(json);
-    };
+    // Expand/Collapse All
+    container.querySelector('.jpp-expand').onclick = () => { highlightPath = null; expandState = { [rootPath]: true }; safeRender(json); };
     container.querySelector('.jpp-collapse').onclick = () => {
       highlightPath = null;
       (function collapse(o, p) {
@@ -599,24 +522,14 @@
       safeRender(json);
     };
 
-    // Theme select
+    // Theme change
     const themeSel = container.querySelector('.jpp-theme-select');
     themeSel.addEventListener('change', e => {
       currentTheme = e.target.value;
       Object.assign(COLORS, THEMES[currentTheme]);
       keyColor = COLORS.key;
-      // Reset highlight and url color to theme default if not custom
-      if (!customHighlightColor) {
-        applyThemeStyles();
-        container.querySelectorAll('.jpp-highlight').forEach(el => {
-          el.style.background = getHighlightColor();
-        });
-      } else {
-        applyThemeStyles();
-        container.querySelectorAll('.jpp-highlight').forEach(el => {
-          el.style.background = getHighlightColor();
-        });
-      }
+      applyThemeStyles();
+      container.querySelectorAll('.jpp-highlight').forEach(el => { el.style.background = getHighlightColor(); });
       if (!customUrlColor) {
         urlStyles.color = getUrlColor();
         const urlDiv = container.querySelector('.jpp-url');
@@ -627,58 +540,17 @@
       safeRender(json);
     });
 
-    // Initialize all toggles in one pass: position + instant handlers
-    const tree = container.querySelector('.jpp-tree');
-    tree.querySelectorAll('.jpp-toggle').forEach(toggle => {
-      // 1️⃣ Position exactly at its line
-      const line = toggle.closest('.jpp-line') || toggle.parentElement;
-      toggle.style.position    = 'absolute';
-      toggle.style.top         = `${line.offsetTop}px`;
-      toggle.style.left        = '-48px';            // 36px sidebar + center arrow
-      toggle.style.touchAction = 'manipulation';     // hint for instant taps
-
-      toggle.onclick = e => {
-        e.stopPropagation();
-        const path = toggle.getAttribute('data-path');
-        if (path !== rootPath) {
-          expandState[path] = !expandState[path];
-          safeRender(json);
-        }
-      };
-    });
-
-
-
-    // Collapsed click -> copy & expand
-    container.querySelectorAll('.jpp-collapsed').forEach(el => {
-      el.onclick = e => {
-        const path = el.getAttribute('data-path');
-        const v = getValueAtPath(rootJson, path);
-        let txt = typeof v === 'object' ? JSON.stringify(v, null, 2) : JSON.stringify(v);
-        if (path && !/\[\d+\]$/.test(path)) {
-          const key = path.split('.').pop().replace(/\[|\]/g, '');
-          txt = `"${key}": ${txt}`;
-        }
-        copyToClipboard(txt);
-        expandState[path] = true;
-        safeRender(json);
-        e.stopPropagation();
-      };
-    });
+    // Initial handlers
+    initToggleHandlers(container);
+    initCollapsedHandlers(container);
 
     // Key color picker
     const keyColorInput = container.querySelector('.jpp-key-color-picker');
     if (keyColorInput) {
       keyColorInput.addEventListener('input', (e) => {
-        keyColor = e.target.value;
-        COLORS.key = keyColor;
-        // Update all key spans live
-        container.querySelectorAll('.jpp-key').forEach(span => {
-          span.style.color = keyColor;
-        });
-        // Update tree color live
-        const tree = container.querySelector('.jpp-tree');
-        if (tree) tree.style.color = keyColor;
+        keyColor = e.target.value; COLORS.key = keyColor;
+        container.querySelectorAll('.jpp-key').forEach(span => { span.style.color = keyColor; });
+        const tree = container.querySelector('.jpp-tree'); if (tree) tree.style.color = keyColor;
       });
     }
 
@@ -690,17 +562,15 @@
       const tree = document.querySelector('.jpp-tree');
       if (tree) tree.style.fontSize = fontSize + 'px';
       label.textContent = `${fontSize}px`;
+      requestAnimationFrame(repositionAllToggles);
     });
 
     // Ctrl/Cmd+F
     window.onkeydown = e => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-        e.preventDefault();
-        createFindPopup();
-      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); createFindPopup(); }
     };
 
-    // Copy event for collapsed nodes
+    // Copy special
     document.addEventListener('copy', e => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed) return;
@@ -714,14 +584,12 @@
       }
     });
 
-    // Click outside highlighted node clears highlight
+    // Clear highlight on outside click
     document.addEventListener('mousedown', function clear(e) {
       const h = document.querySelector('.jpp-highlight');
       const popup = document.getElementById('jpp-find-popup');
       if (highlightPath && h && !h.contains(e.target) && (!popup || !popup.contains(e.target))) {
-        highlightPath = null;
-        h.classList.remove('jpp-highlight');
-        document.removeEventListener('mousedown', clear);
+        highlightPath = null; h.classList.remove('jpp-highlight'); document.removeEventListener('mousedown', clear);
       }
     });
 
@@ -735,89 +603,57 @@
     const urlFontFamily = container.querySelector('.jpp-url-fontfamily');
     const urlDiv = container.querySelector('.jpp-url');
     if (urlColor && urlDiv) {
-      urlColor.addEventListener('input', e => {
-        customUrlColor = e.target.value || null;
-        urlStyles.color = getUrlColor();
-        urlDiv.style.color = urlStyles.color;
-      });
+      urlColor.addEventListener('input', e => { customUrlColor = e.target.value || null; urlStyles.color = getUrlColor(); urlDiv.style.color = urlStyles.color; });
     }
     if (urlResetBtn && urlDiv) {
       urlResetBtn.addEventListener('click', () => {
-        customUrlColor = null;
-        urlStyles.color = getUrlColor();
-        urlDiv.style.color = urlStyles.color;
+        customUrlColor = null; urlStyles.color = getUrlColor(); urlDiv.style.color = urlStyles.color;
         if (urlColor) urlColor.value = getThemeUrlColor();
       });
     }
     if (urlFontSize && urlDiv) {
-      urlFontSize.addEventListener('input', e => {
-        urlStyles.fontSize = e.target.value + 'px';
-        urlDiv.style.fontSize = urlStyles.fontSize;
-      });
+      urlFontSize.addEventListener('input', e => { urlStyles.fontSize = e.target.value + 'px'; urlDiv.style.fontSize = urlStyles.fontSize; });
     }
     if (urlFontWeight && urlDiv) {
-      urlFontWeight.addEventListener('change', e => {
-        urlStyles.fontWeight = e.target.value;
-        urlDiv.style.fontWeight = urlStyles.fontWeight;
-      });
+      urlFontWeight.addEventListener('change', e => { urlStyles.fontWeight = e.target.value; urlDiv.style.fontWeight = urlStyles.fontWeight; });
     }
     if (urlLineHeight && urlDiv) {
-      urlLineHeight.addEventListener('input', e => {
-        urlStyles.lineHeight = e.target.value;
-        urlDiv.style.lineHeight = urlStyles.lineHeight;
-      });
+      urlLineHeight.addEventListener('input', e => { urlStyles.lineHeight = e.target.value; urlDiv.style.lineHeight = urlStyles.lineHeight; });
     }
     if (urlLetterSpacing && urlDiv) {
-      urlLetterSpacing.addEventListener('input', e => {
-        urlStyles.letterSpacing = e.target.value;
-        urlDiv.style.letterSpacing = urlStyles.letterSpacing + 'ch';
-      });
+      urlLetterSpacing.addEventListener('input', e => { urlStyles.letterSpacing = e.target.value; urlDiv.style.letterSpacing = urlStyles.letterSpacing + 'ch'; });
     }
     if (urlFontFamily && urlDiv) {
-      urlFontFamily.addEventListener('change', e => {
-        urlStyles.fontFamily = e.target.value;
-        urlDiv.style.fontFamily = urlStyles.fontFamily;
-      });
+      urlFontFamily.addEventListener('change', e => { urlStyles.fontFamily = e.target.value; urlDiv.style.fontFamily = urlStyles.fontFamily; });
     }
 
-    // Highlight color picker events
     const highlightColorInput = container.querySelector('.jpp-highlight-color-picker');
     const highlightResetBtn = container.querySelector('.jpp-highlight-reset');
     if (highlightColorInput) {
       highlightColorInput.addEventListener('input', e => {
         customHighlightColor = e.target.value || null;
         applyThemeStyles();
-        // Update all highlights live
-        container.querySelectorAll('.jpp-highlight').forEach(el => {
-          el.style.background = getHighlightColor();
-        });
+        container.querySelectorAll('.jpp-highlight').forEach(el => { el.style.background = getHighlightColor(); });
       });
     }
     if (highlightResetBtn) {
       highlightResetBtn.addEventListener('click', () => {
-        customHighlightColor = null;
-        applyThemeStyles();
-        // Update all highlights live
-        container.querySelectorAll('.jpp-highlight').forEach(el => {
-          el.style.background = getHighlightColor();
-        });
-        // Also reset the color picker input to theme default
+        customHighlightColor = null; applyThemeStyles();
+        container.querySelectorAll('.jpp-highlight').forEach(el => { el.style.background = getHighlightColor(); });
         if (highlightColorInput) highlightColorInput.value = getHighlightColorHex();
       });
     }
+
+    requestAnimationFrame(repositionAllToggles);
   }
 
-  // ====================== BOOTSTRAP ======================
+  // ---------------- BOOTSTRAP ----------------
   const text = getRawJSONText();
   if (!text) return;
   let json;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    document.body.innerHTML = '<div style="color:#ff3b3b;padding:24px;font-size:18px;">Invalid JSON</div>';
-    return;
-  }
-  // Clear the page before rendering the pretty-printed JSON
+  try { json = JSON.parse(text); }
+  catch { document.body.innerHTML = '<div style="color:#ff3b3b;padding:24px;font-size:18px;">Invalid JSON</div>'; return; }
+
   document.body.innerHTML = '';
   render(json);
 })();
