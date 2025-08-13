@@ -22,7 +22,16 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["contentScript.js"],
+      "js": [
+        "src/constants.js",
+        "src/utils.js",
+        "src/state.js",
+        "src/dom.js",
+        "src/pathing.js",
+        "src/renderer.js",
+        "src/controls.js",
+        "src/bootstrap.js"
+      ],
       "run_at": "document_end"
     }
   ]
