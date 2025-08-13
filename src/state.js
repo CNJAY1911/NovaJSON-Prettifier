@@ -37,7 +37,7 @@
     return isLight ? 'rgba(255, 230, 0, 0.35)' : 'rgba(255, 255, 100, 0.35)';
   }
   function getHighlightColor() { return customHighlightColor || getThemeHighlightColor(); }
-  function getThemeUrlColor() { return COLORS.number; }
+  function getThemeUrlColor() { return COLORS.url; }
   function getUrlColor() { return customUrlColor || getThemeUrlColor(); }
   function getHighlightColorHex() {
     if (customHighlightColor) return customHighlightColor;

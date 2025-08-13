@@ -26,6 +26,7 @@
         "src/constants.js",
         "src/utils.js",
         "src/state.js",
+        "src/styles.js",
         "src/dom.js",
         "src/pathing.js",
         "src/renderer.js",

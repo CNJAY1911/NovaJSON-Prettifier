@@ -5,7 +5,6 @@
   const { utils } = window.NJPP;
 
   function syntaxHighlight(value, keyPath, level, isLast, parentIsArray, isRoot) {
-    const COLORS = state.COLORS;
     const expandState = state.expandState;
     const highlightPath = state.highlightPath;
 
@@ -18,7 +17,7 @@
         : '';
 
       if (keys.length === 0) {
-        return `${toggleBtn}<span style="color:${COLORS.key};">${isArray ? '[]' : '{}'}</span>${!isLast ? ',' : ''}`;
+        return `${toggleBtn}<span class="jpp-brace">${isArray ? '[]' : '{}'}</span>${!isLast ? ',' : ''}`;
       }
 
       if (!isOpen) {
@@ -28,14 +27,13 @@
                   class="jpp-collapsed jpp-count${highlightPath===keyPath?' jpp-highlight':''}"
                   data-path="${keyPath}"
                   data-jpp-path="${keyPath}"
-                  style="color:${COLORS.url};cursor:pointer;user-select:text;"
                 >
                   ${toggleBtn}${ellipsis}
                 </span>${!isLast ? ',' : ''}`;
       }
 
       let html = '';
-      html += `${toggleBtn}<span style="color:${COLORS.key};">${isArray ? '[' : '{'}</span>`;
+      html += `${toggleBtn}<span class="jpp-brace">${isArray ? '[' : '{'}</span>`;
       keys.forEach((k, i) => {
         const childPath = keyPath + (isArray ? `[${k}]` : `.${k}`);
         html += `<div
@@ -44,7 +42,7 @@
                    style="margin-left:${(level + INDENT)}ch;"
                  >`;
         if (!isArray) {
-          html += `<span class="jpp-key" style="color:${COLORS.key};">"${k}"</span>:`;
+          html += `<span class="jpp-key">"${k}"</span>:`;
         }
         html += ' ' + syntaxHighlight(
           value[k],
@@ -56,7 +54,7 @@
         );
         html += `</div>`;
       });
-      html += `<span style="color:${COLORS.key};margin-left:${level}ch;">${isArray ? ']' : '}'}${!isLast ? ',' : ''}</span>`;
+      html += `<span class="jpp-brace" style="margin-left:${level}ch;">${isArray ? ']' : '}'}${!isLast ? ',' : ''}</span>`;
       return html;
     }
 
@@ -64,14 +62,14 @@
     if (typeof value === 'string') {
       const safe = utils.escapeHTML(value);
       val = utils.isURL(value)
-        ? `<a href="${safe}" target="_blank" style="color:${state.COLORS.url};text-decoration:underline;">"${safe}"</a>`
-        : `<span style="color:${state.COLORS.string};">"${safe}"</span>`;
+        ? `<a class="jpp-link" href="${safe}" target="_blank">"${safe}"</a>`
+        : `<span class="jpp-string">"${safe}"</span>`;
     } else if (typeof value === 'number') {
-      val = `<span style="color:${state.COLORS.number};">${value}</span>`;
+      val = `<span class="jpp-number">${value}</span>`;
     } else if (typeof value === 'boolean') {
-      val = `<span style="color:${state.COLORS.boolean};">${value}</span>`;
+      val = `<span class="jpp-boolean">${value}</span>`;
     } else if (value === null) {
-      val = `<span style="color:${state.COLORS.null};">null</span>`;
+      val = `<span class="jpp-null">null</span>`;
     } else {
       val = '';
     }

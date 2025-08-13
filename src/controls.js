@@ -40,7 +40,7 @@
     ];
     return `<div class="jpp-url-manager" style="display:flex;align-items:center;gap:8px;margin:0;padding:0;flex-wrap:wrap;">
       <span style="color:#aaa;font-size:13px;">URL text:</span>
-      <input type="color" class="jpp-url-color" value="${state.getUrlColor()}" title="Color" style="width:24px;height:24px;border:none;cursor:pointer;">
+      <input type="color" class="jpp-url-color" value="${state.urlStyles.color}" title="Color" style="width:24px;height:24px;border:none;cursor:pointer;">
       <button class="jpp-url-reset" style="margin-left:2px;padding:2px 6px;font-size:12px;">Reset</button>
       <input type="number" class="jpp-url-fontsize" min="10" max="40" value="${parseInt(urlStyles.fontSize)}" title="Font Size" style="width:48px;">
       <select class="jpp-url-fontweight" title="Font Weight">
@@ -66,21 +66,17 @@
   }
 
   function renderTopBar(urlStyles) {
-    const COLORS = state.COLORS;
-    return `<div class="jpp-topbar" style="position:sticky; top:0; z-index:10; background:${COLORS.bg}; padding:10px 18px 10px 12px; border-bottom:1px solid #222;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0;">
+    return `<div class="jpp-topbar">
+      <div class="jpp-topbar-row">
+        <div class="jpp-topbar-left">
           ${renderKeyPalette()} ${renderThemeSelect()} ${renderFontSizeSlider()} ${renderHighlightColorPicker()} ${renderUrlManager(state.urlStyles)}
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <button class="jpp-expand" style="background:#222456;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">Expand All</button>
-          <button class="jpp-collapse" style="background:#222456;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-weight:600;">Collapse All</button>
+        <div class="jpp-topbar-right">
+          <button class="jpp-expand jpp-pill">Expand All</button>
+          <button class="jpp-collapse jpp-pill">Collapse All</button>
         </div>
       </div>
-      <div class="jpp-url" style="
-        width:100%; margin-top:20px; font-size:${state.urlStyles.fontSize}; color:${state.getUrlColor()};
-        word-break:break-all; line-height:${state.urlStyles.lineHeight}; font-weight:${state.urlStyles.fontWeight};
-        letter-spacing:${state.urlStyles.letterSpacing}ch; font-family:${state.urlStyles.fontFamily};">
+      <div class="jpp-url-bar">
         ${utils.escapeHTML(window.location.href)}
       </div>
     </div>`;
@@ -90,6 +86,19 @@
     state.rootJson = json;
 
     if (state.highlightPath && !document.getElementById('jpp-find-popup')) state.highlightPath = null;
+
+    // Initialize expandState for all expandable nodes on first load
+    if (Object.keys(state.expandState).length === 0) {
+      (function initExpandState(obj, path) {
+        if (typeof obj === 'object' && obj !== null && Object.keys(obj).length > 0) {
+          if (path !== rootPath) state.expandState[path] = true; // Start expanded
+          Object.keys(obj).forEach(k => {
+            const childPath = path + (Array.isArray(obj) ? `[${k}]` : `.${k}`);
+            initExpandState(obj[k], childPath);
+          });
+        }
+      })(json, rootPath);
+    }
 
     if (state.highlightPath && !state.highlightPath.startsWith(rootPath)) {
       const full = rootPath + state.highlightPath;
@@ -112,7 +121,7 @@
     const container = document.createElement('div');
     container.id = 'jpp-root';
     container.innerHTML = renderTopBar(state.urlStyles) + `
-      <div class="jpp-tree" style="font-family:monospace; font-size:${state.fontSize}px; line-height:1.7; letter-spacing:0.04em; padding:18px; color:${state.COLORS.key};">
+      <div class="jpp-tree">
         ${renderer.renderTree(json)}
       </div>`;
     document.body.appendChild(container);
@@ -138,11 +147,9 @@
       dom.applyThemeStyles();
       container.querySelectorAll('.jpp-highlight').forEach(el => { el.style.background = state.getHighlightColor(); });
       if (!state.customUrlColorRef.value) {
-        state.urlStyles.color = state.getUrlColor();
-        const urlDiv = container.querySelector('.jpp-url');
-        if (urlDiv) urlDiv.style.color = state.urlStyles.color;
+        state.urlStyles.color = state.getThemeUrlColor();
         const urlColorInput = container.querySelector('.jpp-url-color');
-        if (urlColorInput) urlColorInput.value = state.getUrlColor();
+        if (urlColorInput) urlColorInput.value = state.getThemeUrlColor();
       }
       safeRender(json);
     });
@@ -208,30 +215,54 @@
     const urlLineHeight = container.querySelector('.jpp-url-lineheight');
     const urlLetterSpacing = container.querySelector('.jpp-url-letterspacing');
     const urlFontFamily = container.querySelector('.jpp-url-fontfamily');
-    const urlDiv = container.querySelector('.jpp-url');
-    if (urlColor && urlDiv) {
-      urlColor.addEventListener('input', e => { state.customUrlColorRef.value = e.target.value || null; state.urlStyles.color = state.getUrlColor(); urlDiv.style.color = state.urlStyles.color; });
+    const urlDiv = container.querySelector('.jpp-url-bar');
+    
+    const updateUrlVars = () => dom.applyThemeStyles();
+    
+    if (urlColor) {
+      urlColor.addEventListener('input', e => { 
+        state.customUrlColorRef.value = e.target.value || null; 
+        state.urlStyles.color = e.target.value || state.getThemeUrlColor(); 
+        updateUrlVars();
+      });
     }
-    if (urlResetBtn && urlDiv) {
+    if (urlResetBtn) {
       urlResetBtn.addEventListener('click', () => {
-        state.customUrlColorRef.value = null; state.urlStyles.color = state.getUrlColor(); urlDiv.style.color = state.urlStyles.color;
+        state.customUrlColorRef.value = null; 
+        state.urlStyles.color = state.getThemeUrlColor();
+        updateUrlVars();
         if (urlColor) urlColor.value = state.getThemeUrlColor();
       });
     }
-    if (urlFontSize && urlDiv) {
-      urlFontSize.addEventListener('input', e => { state.urlStyles.fontSize = e.target.value + 'px'; urlDiv.style.fontSize = state.urlStyles.fontSize; });
+    if (urlFontSize) {
+      urlFontSize.addEventListener('input', e => { 
+        state.urlStyles.fontSize = e.target.value + 'px'; 
+        updateUrlVars();
+      });
     }
-    if (urlFontWeight && urlDiv) {
-      urlFontWeight.addEventListener('change', e => { state.urlStyles.fontWeight = e.target.value; urlDiv.style.fontWeight = state.urlStyles.fontWeight; });
+    if (urlFontWeight) {
+      urlFontWeight.addEventListener('change', e => { 
+        state.urlStyles.fontWeight = e.target.value; 
+        updateUrlVars();
+      });
     }
-    if (urlLineHeight && urlDiv) {
-      urlLineHeight.addEventListener('input', e => { state.urlStyles.lineHeight = e.target.value; urlDiv.style.lineHeight = state.urlStyles.lineHeight; });
+    if (urlLineHeight) {
+      urlLineHeight.addEventListener('input', e => { 
+        state.urlStyles.lineHeight = e.target.value; 
+        updateUrlVars();
+      });
     }
-    if (urlLetterSpacing && urlDiv) {
-      urlLetterSpacing.addEventListener('input', e => { state.urlStyles.letterSpacing = e.target.value; urlDiv.style.letterSpacing = state.urlStyles.letterSpacing + 'ch'; });
+    if (urlLetterSpacing) {
+      urlLetterSpacing.addEventListener('input', e => { 
+        state.urlStyles.letterSpacing = e.target.value; 
+        updateUrlVars();
+      });
     }
-    if (urlFontFamily && urlDiv) {
-      urlFontFamily.addEventListener('change', e => { state.urlStyles.fontFamily = e.target.value; urlDiv.style.fontFamily = state.urlStyles.fontFamily; });
+    if (urlFontFamily) {
+      urlFontFamily.addEventListener('change', e => { 
+        state.urlStyles.fontFamily = e.target.value; 
+        updateUrlVars();
+      });
     }
 
     const highlightColorInput = container.querySelector('.jpp-highlight-color-picker');
