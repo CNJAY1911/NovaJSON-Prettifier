@@ -127,7 +127,21 @@
     document.body.appendChild(container);
 
     // Expand/Collapse All
-    container.querySelector('.jpp-expand').onclick = () => { state.highlightPath = null; state.expandState = { [rootPath]: true }; safeRender(json); };
+    container.querySelector('.jpp-expand').onclick = () => { 
+      state.highlightPath = null; 
+      // Initialize expandState for all expandable nodes
+      (function initExpandState(obj, path) {
+        if (typeof obj === 'object' && obj !== null && Object.keys(obj).length > 0) {
+          if (path !== rootPath) state.expandState[path] = true; // Start expanded
+          Object.keys(obj).forEach(k => {
+            const childPath = path + (Array.isArray(obj) ? `[${k}]` : `.${k}`);
+            initExpandState(obj[k], childPath);
+          });
+        }
+      })(json, rootPath);
+      state.expandState[rootPath] = true; // Ensure root is expanded
+      safeRender(json); 
+    };
     container.querySelector('.jpp-collapse').onclick = () => {
       state.highlightPath = null;
       (function collapse(o, p) {
@@ -147,9 +161,9 @@
       dom.applyThemeStyles();
       container.querySelectorAll('.jpp-highlight').forEach(el => { el.style.background = state.getHighlightColor(); });
       if (!state.customUrlColorRef.value) {
-        state.urlStyles.color = state.getThemeUrlColor();
+        state.urlStyles.color = state.COLORS.number; // Reset to yellow (number color)
         const urlColorInput = container.querySelector('.jpp-url-color');
-        if (urlColorInput) urlColorInput.value = state.getThemeUrlColor();
+        if (urlColorInput) urlColorInput.value = state.COLORS.number;
       }
       safeRender(json);
     });
@@ -229,9 +243,9 @@
     if (urlResetBtn) {
       urlResetBtn.addEventListener('click', () => {
         state.customUrlColorRef.value = null; 
-        state.urlStyles.color = state.getThemeUrlColor();
+        state.urlStyles.color = state.COLORS.number; // Reset to yellow (number color)
         updateUrlVars();
-        if (urlColor) urlColor.value = state.getThemeUrlColor();
+        if (urlColor) urlColor.value = state.COLORS.number;
       });
     }
     if (urlFontSize) {
