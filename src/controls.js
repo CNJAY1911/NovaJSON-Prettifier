@@ -246,36 +246,42 @@
         state.urlStyles.color = state.COLORS.number; // Reset to yellow (number color)
         updateUrlVars();
         if (urlColor) urlColor.value = state.COLORS.number;
+        state.saveUrlStyles();
       });
     }
     if (urlFontSize) {
       urlFontSize.addEventListener('input', e => { 
         state.urlStyles.fontSize = e.target.value + 'px'; 
         updateUrlVars();
+        state.saveUrlStyles();
       });
     }
     if (urlFontWeight) {
       urlFontWeight.addEventListener('change', e => { 
         state.urlStyles.fontWeight = e.target.value; 
         updateUrlVars();
+        state.saveUrlStyles();
       });
     }
     if (urlLineHeight) {
       urlLineHeight.addEventListener('input', e => { 
         state.urlStyles.lineHeight = e.target.value; 
         updateUrlVars();
+        state.saveUrlStyles();
       });
     }
     if (urlLetterSpacing) {
       urlLetterSpacing.addEventListener('input', e => { 
         state.urlStyles.letterSpacing = e.target.value; 
         updateUrlVars();
+        state.saveUrlStyles();
       });
     }
     if (urlFontFamily) {
       urlFontFamily.addEventListener('change', e => { 
         state.urlStyles.fontFamily = e.target.value; 
         updateUrlVars();
+        state.saveUrlStyles();
       });
     }
 

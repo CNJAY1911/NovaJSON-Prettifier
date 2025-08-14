@@ -10,6 +10,7 @@
 - Key color picker and live preview
 - UI is always fixed and compact
 - Prevents double-injection and overrides other JSON formatters
+- **Theme persistence and user preference saving**
 - Many bugfixes and UX improvements
 
 Pretty‑print raw JSON in Chrome **on demand**. Click the toolbar button and get collapsible nodes, fast search, 6 light/dark themes, and persistent scroll — all locally, no data collected.
@@ -18,6 +19,8 @@ Pretty‑print raw JSON in Chrome **on demand**. Click the toolbar button and ge
 
 - **Tap‑to‑run:** Uses `activeTab` + `scripting`; runs only after you click.
 - **6 Themes (3 light / 3 dark):** Midnight Neon, Graphite Dark, Solar Dark, Paper White, Slate Light, Solar Light.
+- **Theme Persistence:** Your selected theme is automatically saved and restored on future visits.
+- **User Preferences:** Font size, custom colors, and URL styling preferences are saved locally.
 - **Collapse / expand** with state memory (scroll position preserved).
 - **Inline search popup** with highlight & smooth scroll to result.
 - **Safe HTML strings:** Values are escaped and shown as code (never rendered).
@@ -36,6 +39,7 @@ Pretty‑print raw JSON in Chrome **on demand**. Click the toolbar button and ge
 ## 🔐 Privacy
 
 We do not collect, transmit, or store any data. Everything runs locally in your browser.
+User preferences (theme, font size, colors) are saved locally using browser storage APIs.
 Read the full [Privacy Policy](https://github.com/CNJAY1911/NovaJSON-Prettifier/blob/master/privacy_policy.md).
 
 ## 🛠 Contributing
