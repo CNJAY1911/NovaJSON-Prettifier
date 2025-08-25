@@ -121,8 +121,8 @@
 
   function getThemeHighlightColor() {
     const bg = COLORS.bg.toLowerCase();
-    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(bg) || (bg.startsWith('#') && parseInt(bg.slice(1),16) > 0xaaaaaa);
-    return isLight ? 'rgba(255, 230, 0, 0.35)' : 'rgba(255, 255, 100, 0.35)';
+    const isLight = ["#ffffff", "#f8fafc", "#fff8e0"].includes(bg) || (bg.startsWith('#') && parseInt(bg.slice(1),16) > 0xaaaaaa);
+    return isLight ? 'rgba(255, 100, 0, 0.4)' : 'rgba(255, 255, 0, 0.4)';
   }
   function getHighlightColor() { return customHighlightColor || getThemeHighlightColor(); }
   function getThemeUrlColor() { return COLORS.url; }
@@ -130,8 +130,8 @@
   function getHighlightColorHex() {
     if (customHighlightColor) return customHighlightColor;
     const bg = COLORS.bg.toLowerCase();
-    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(bg) || (bg.startsWith('#') && parseInt(bg.slice(1),16) > 0xaaaaaa);
-    return isLight ? '#fff700' : '#fff964';
+    const isLight = ["#ffffff", "#f8fafc", "#fff8e0"].includes(bg) || (bg.startsWith('#') && parseInt(bg.slice(1),16) > 0xaaaaaa);
+    return isLight ? '#ff6600' : '#ffff00';
   }
 
   window.NJPP.state = {

@@ -8,25 +8,25 @@
   const { pathing } = window.NJPP;
 
   function renderKeyPalette() {
-    return `<div style="display:inline-flex;gap:6px;align-items:center;margin-left:12px;position:relative;">
-      <span style="color:#aaa;font-size:13px;">Key color:</span>
-      <input type="color" class="jpp-key-color-picker" value="${state.keyColor}" title="Key Color" style="width:24px;height:24px;border:none;cursor:pointer;vertical-align:middle;">
+    return `<div style="display:inline-flex;gap:8px;align-items:center;margin-left:12px;position:relative;">
+      <span style="color:var(--jpp-key-color);font-size:14px;font-weight:500;">Key color:</span>
+      <input type="color" class="jpp-key-color-picker" value="${state.keyColor}" title="Key Color" style="width:28px;height:28px;border:2px solid var(--jpp-url-color);border-radius:4px;cursor:pointer;vertical-align:middle;">
     </div>`;
   }
 
   function renderThemeSelect() {
     const COLORS = state.COLORS;
-    const isLight = ["#ffffff", "#f5f7fa", "#fdf6e3"].includes(COLORS.bg);
+    const isLight = ["#ffffff", "#f8fafc", "#fff8e0"].includes(COLORS.bg);
     return `<select class="jpp-theme-select ${isLight ? 'light' : ''}">
       ${Object.keys(THEMES).map(t => `<option value="${t}" ${t===state.currentTheme?'selected':''}>${t}</option>`).join('')}
     </select>`;
   }
 
   function renderFontSizeSlider() {
-    return `<div style="display:inline-flex;align-items:center;margin-left:18px;gap:6px;">
-      <span style="color:#aaa;font-size:13px;">Font size:</span>
-      <input type="range" min="12" max="28" value="${state.fontSize}" class="jpp-font-slider" style="vertical-align:middle;">
-      <span class="jpp-font-size-label" style="color:#aaa;font-size:13px;min-width:24px;display:inline-block;">${state.fontSize}px</span>
+    return `<div style="display:inline-flex;align-items:center;margin-left:18px;gap:8px;">
+      <span style="color:var(--jpp-key-color);font-size:14px;font-weight:500;">Font size:</span>
+      <input type="range" min="12" max="28" value="${state.fontSize}" class="jpp-font-slider" style="vertical-align:middle;accent-color:var(--jpp-url-color);">
+      <span class="jpp-font-size-label" style="color:var(--jpp-key-color);font-size:14px;min-width:32px;display:inline-block;font-weight:500;">${state.fontSize}px</span>
     </div>`;
   }
 
@@ -38,30 +38,30 @@
       { name: 'Menlo', css: 'Menlo, monospace' }, { name: 'Consolas', css: 'Consolas, monospace' },
       { name: 'Courier New', css: 'Courier New, monospace' }, { name: 'monospace', css: 'monospace' }
     ];
-    return `<div class="jpp-url-manager" style="display:flex;align-items:center;gap:8px;margin:0;padding:0;flex-wrap:wrap;">
-      <span style="color:#aaa;font-size:13px;">URL text:</span>
-      <input type="color" class="jpp-url-color" value="${state.urlStyles.color}" title="Color" style="width:24px;height:24px;border:none;cursor:pointer;">
-      <button class="jpp-url-reset" style="margin-left:2px;padding:2px 6px;font-size:12px;">Reset</button>
-      <input type="number" class="jpp-url-fontsize" min="10" max="40" value="${parseInt(urlStyles.fontSize)}" title="Font Size" style="width:48px;">
-      <select class="jpp-url-fontweight" title="Font Weight">
+    return `<div class="jpp-url-manager" style="display:flex;align-items:center;gap:10px;margin:0;padding:0;flex-wrap:wrap;">
+      <span style="color:var(--jpp-key-color);font-size:14px;font-weight:500;">URL text:</span>
+      <input type="color" class="jpp-url-color" value="${state.urlStyles.color}" title="Color" style="width:28px;height:28px;border:2px solid var(--jpp-url-color);border-radius:4px;cursor:pointer;">
+      <button class="jpp-url-reset" style="margin-left:4px;padding:4px 8px;font-size:12px;background:var(--jpp-url-color);color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:500;">Reset</button>
+      <input type="number" class="jpp-url-fontsize" min="10" max="40" value="${parseInt(urlStyles.fontSize)}" title="Font Size" style="width:52px;padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
+      <select class="jpp-url-fontweight" title="Font Weight" style="padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
         <option value="400" ${urlStyles.fontWeight==='400'?'selected':''}>Normal</option>
         <option value="500" ${urlStyles.fontWeight==='500'?'selected':''}>Medium</option>
         <option value="600" ${urlStyles.fontWeight==='600'?'selected':''}>Semi-Bold</option>
         <option value="700" ${urlStyles.fontWeight==='700'?'selected':''}>Bold</option>
       </select>
-      <input type="number" class="jpp-url-lineheight" min="1" max="3" step="0.05" value="${parseFloat(urlStyles.lineHeight)}" title="Line Height" style="width:48px;">
-      <input type="number" class="jpp-url-letterspacing" min="0" max="10" step="0.1" value="${parseFloat(urlStyles.letterSpacing)}" title="Letter Spacing" style="width:48px;">
-      <select class="jpp-url-fontfamily" title="Font Family">
+      <input type="number" class="jpp-url-lineheight" min="1" max="3" step="0.05" value="${parseFloat(urlStyles.lineHeight)}" title="Line Height" style="width:52px;padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
+      <input type="number" class="jpp-url-letterspacing" min="0" max="10" step="0.1" value="${parseFloat(urlStyles.letterSpacing)}" title="Letter Spacing" style="width:52px;padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
+      <select class="jpp-url-fontfamily" title="Font Family" style="padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
         ${fonts.map(f => `<option value="${f.css}" ${urlStyles.fontFamily===f.css?'selected':''}>${f.name}</option>`).join('')}
       </select>
     </div>`;
   }
 
   function renderHighlightColorPicker() {
-    return `<div style="display:inline-flex;align-items:center;gap:6px;">
-      <span style="color:#aaa;font-size:13px;">Highlight:</span>
-      <input type="color" class="jpp-highlight-color-picker" value="${state.getHighlightColorHex()}" title="Highlight Color" style="width:24px;height:24px;border:none;cursor:pointer;vertical-align:middle;">
-      <button class="jpp-highlight-reset" style="margin-left:2px;padding:2px 6px;font-size:12px;">Reset</button>
+    return `<div style="display:inline-flex;align-items:center;gap:8px;">
+      <span style="color:var(--jpp-key-color);font-size:14px;font-weight:500;">Highlight:</span>
+      <input type="color" class="jpp-highlight-color-picker" value="${state.getHighlightColorHex()}" title="Highlight Color" style="width:28px;height:28px;border:2px solid var(--jpp-url-color);border-radius:4px;cursor:pointer;vertical-align:middle;">
+      <button class="jpp-highlight-reset" style="margin-left:4px;padding:4px 8px;font-size:12px;background:var(--jpp-url-color);color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:500;">Reset</button>
     </div>`;
   }
 
@@ -404,64 +404,201 @@
     if (document.getElementById('jpp-find-popup')) return;
     const popup = document.createElement('div');
     popup.id = 'jpp-find-popup';
+    
+    // Use theme colors for light themes to match JSON tree colors
+    const isLight = ["#ffffff", "#f8fafc", "#fff8e0"].includes(state.COLORS.bg);
+    const popupBg = isLight ? state.COLORS.bg : 'var(--jpp-bg)';
+    const popupBorder = isLight ? state.COLORS.url : 'var(--jpp-url-color)';
+    const popupText = isLight ? state.COLORS.key : 'var(--jpp-key-color)';
+    const inputBg = isLight ? state.COLORS.bg : 'var(--jpp-bg)';
+    const inputBorder = isLight ? state.COLORS.url : 'var(--jpp-url-color)';
+    const inputText = isLight ? state.COLORS.key : 'var(--jpp-key-color)';
+    const closeBtnBg = isLight ? state.COLORS.url : 'var(--jpp-url-color)';
+    const resultsText = isLight ? state.COLORS.key : 'var(--jpp-key-color)';
+    
+    // Position popup at the bottom of the top toolbar divider line
+    const topbar = document.querySelector('.jpp-topbar');
+    const topbarBottom = topbar ? topbar.getBoundingClientRect().bottom : 80; // fallback to 80px if topbar not found
+    
     popup.innerHTML = `
-      <div style="background:#23272e;border-radius:8px 0 0 8px;box-shadow:-2px 2px 12px #0006;position:fixed;top:40px;right:0;width:340px;max-width:90vw;height:340px;z-index:99999;display:flex;flex-direction:column;">
-        <div style="padding:10px 14px 6px 14px;display:flex;align-items:center;gap:8px;">
-          <input id="jpp-find-input" type="text" placeholder="Find..." style="flex:1;background:#181a1b;color:#fff;border:none;padding:7px 10px;border-radius:4px;font-size:15px;outline:none;"/>
-          <button id="jpp-find-close" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;">×</button>
+      <div style="background:${popupBg};border:2px solid ${popupBorder};border-radius:8px 0 0 8px;box-shadow:-2px 2px 12px #0006;position:fixed;top:${topbarBottom}px;right:0;width:340px;max-width:90vw;height:340px;z-index:99999;display:flex;flex-direction:column;">
+        <div style="padding:10px 14px 6px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid ${popupBorder};">
+          <input id="jpp-find-input" type="text" placeholder="Find..." style="flex:1;background:${inputBg};color:${inputText};border:2px solid ${inputBorder};padding:7px 10px;border-radius:4px;font-size:15px;outline:none;font-weight:500;"/>
+          <button id="jpp-find-close" style="background:${closeBtnBg};border:none;color:#fff;font-size:20px;cursor:pointer;width:28px;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:600;">×</button>
         </div>
-        <div id="jpp-find-results" style="flex:1;overflow-y:auto;padding:8px 16px 8px 24px;color:#fff;"></div>
+        <div id="jpp-find-results" style="flex:1;overflow-y:auto;padding:8px 16px 8px 24px;color:${resultsText};"></div>
       </div>`;
     document.body.appendChild(popup);
+
+    // Prevent popup from losing focus when clicking inside it
+    popup.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('jpp-find-input');
+      if (input) {
+        input.focus();
+        // Restore cursor position if there's text
+        if (input.value) {
+          input.setSelectionRange(input.value.length, input.value.length);
+        }
+      }
+    });
 
     document.getElementById('jpp-find-close').onclick = () => { popup.remove(); state.highlightPath = null; };
 
     const input = document.getElementById('jpp-find-input');
     input.focus();
+    
+    // Keyboard navigation variables
+    let selectedIndex = -1;
+    let searchResults = [];
+    
+    // Handle keyboard navigation
+    input.addEventListener('keydown', (e) => {
+      if (searchResults.length === 0) return;
+      
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          if (selectedIndex < searchResults.length - 1) {
+            selectedIndex++;
+            updateSelection();
+            scrollToSelected();
+          }
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          if (selectedIndex > 0) {
+            selectedIndex--;
+            updateSelection();
+            scrollToSelected();
+          }
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
+            selectResult(searchResults[selectedIndex]);
+          }
+          break;
+        case 'Escape':
+          popup.remove();
+          state.highlightPath = null;
+          break;
+      }
+    });
+    
+    // Update visual selection
+    function updateSelection() {
+      const results = document.querySelectorAll('.jpp-find-result');
+      results.forEach((el, index) => {
+        if (index === selectedIndex) {
+          el.style.background = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)';
+          el.style.borderColor = popupBorder;
+          el.style.borderWidth = '2px';
+        } else {
+          el.style.background = 'transparent';
+          el.style.borderColor = 'transparent';
+          el.style.borderWidth = '1px';
+        }
+      });
+    }
+    
+    // Scroll to keep selected element visible
+    function scrollToSelected() {
+      if (selectedIndex < 0) return;
+      
+      const resultsContainer = document.getElementById('jpp-find-results');
+      const selectedElement = resultsContainer.children[selectedIndex];
+      
+      if (selectedElement) {
+        const containerRect = resultsContainer.getBoundingClientRect();
+        const elementRect = selectedElement.getBoundingClientRect();
+        
+        // Check if element is above visible area
+        if (elementRect.top < containerRect.top) {
+          selectedElement.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+        // Check if element is below visible area
+        else if (elementRect.bottom > containerRect.bottom) {
+          selectedElement.scrollIntoView({ block: 'end', behavior: 'smooth' });
+        }
+      }
+    }
+    
+    // Select and navigate to result
+    function selectResult(result) {
+      const relPath = result.path;
+      const fullPath = rootPath + relPath;
+      state.highlightPath = fullPath;
+
+      const segments = fullPath.match(/(?:\[[^\]]+\]|\.[^\.\[]+)/g) || [];
+      let acc = rootPath;
+      segments.forEach(seg => { acc += seg; state.expandState[acc] = true; });
+
+      safeRender(state.rootJson, () => {
+        const tgt = document.querySelector(`[data-jpp-path="${utils.cssEscapeAttr(state.highlightPath)}"]`);
+        if (tgt) tgt.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+    
     input.oninput = function () {
       const term = this.value.trim().toLowerCase();
-      let results = [];
+      searchResults = [];
+      selectedIndex = -1;
+      
       (function search(obj, path) {
         if (typeof obj === 'object' && obj !== null) {
           Object.entries(obj).forEach(([k, v]) => {
             const childPath = path + (Array.isArray(obj) ? `[${k}]` : `.${k}`);
-            if (!Array.isArray(obj) && k.toLowerCase().includes(term)) results.push({ path: childPath, key: k, value: v });
-            if (typeof v === 'string' && v.toLowerCase().includes(term)) results.push({ path: childPath, key: k, value: v });
+            if (!Array.isArray(obj) && k.toLowerCase().includes(term)) searchResults.push({ path: childPath, key: k, value: v });
+            if (typeof v === 'string' && v.toLowerCase().includes(term)) searchResults.push({ path: childPath, key: k, value: v });
             if (typeof v === 'object' && v !== null) search(v, childPath);
           });
         }
       })(state.rootJson, '');
 
       const seen = new Set();
-      results = results.filter(r => !seen.has(r.path) && seen.add(r.path));
+      searchResults = searchResults.filter(r => !seen.has(r.path) && seen.add(r.path));
 
       const resDiv = document.getElementById('jpp-find-results');
-      if (!term) { resDiv.innerHTML = ''; return; }
-      if (results.length === 0) { resDiv.innerHTML = '<div style="color:#aaa;padding:12px;">No results</div>'; return; }
+      if (!term) { 
+        resDiv.innerHTML = ''; 
+        searchResults = [];
+        selectedIndex = -1;
+        return; 
+      }
+      if (searchResults.length === 0) { 
+        resDiv.innerHTML = '<div style="color:' + resultsText + ';padding:12px;text-align:center;font-weight:500;">No results found</div>'; 
+        selectedIndex = -1;
+        return; 
+      }
 
-      resDiv.innerHTML = results.map(r => `
-        <div class="jpp-find-result" data-path="${r.path}" style="padding:6px 0;cursor:pointer;color:#fff;">
-          <span style="color:${state.COLORS.number};">${utils.escapeHTML(r.key)}</span>:
-          <span style="color:${state.COLORS.string};">${typeof r.value === 'object' ? (Array.isArray(r.value) ? '[...]' : '{...}') : utils.escapeHTML(JSON.stringify(r.value))}</span>
+      resDiv.innerHTML = searchResults.map(r => `
+        <div class="jpp-find-result" data-path="${r.path}" style="padding:6px 0;cursor:pointer;color:${resultsText};border-radius:4px;margin-bottom:2px;transition:all 0.2s ease;border:1px solid transparent;">
+          <span style="color:${state.COLORS.number};font-weight:600;">${utils.escapeHTML(r.key)}</span>:
+          <span style="color:${state.COLORS.string};font-weight:500;">${typeof r.value === 'object' ? (Array.isArray(r.value) ? '[...]' : '{...}') : utils.escapeHTML(JSON.stringify(r.value))}</span>
         </div>
       `).join('');
 
-      resDiv.querySelectorAll('.jpp-find-result').forEach(el => {
+      // Add hover effects and click handlers to results
+      resDiv.querySelectorAll('.jpp-find-result').forEach((el, index) => {
+        el.onmouseenter = function() {
+          selectedIndex = index;
+          updateSelection();
+        };
+        el.onmouseleave = function() {
+          // Don't clear selection on mouse leave for keyboard navigation
+        };
+        
         el.onclick = function () {
-          const relPath = this.getAttribute('data-path');
-          const fullPath = rootPath + relPath;
-          state.highlightPath = fullPath;
-
-          const segments = fullPath.match(/(?:\[[^\]]+\]|\.[^\.\[]+)/g) || [];
-          let acc = rootPath;
-          segments.forEach(seg => { acc += seg; state.expandState[acc] = true; });
-
-          safeRender(state.rootJson, () => {
-            const tgt = document.querySelector(`[data-jpp-path="${utils.cssEscapeAttr(state.highlightPath)}"]`);
-            if (tgt) tgt.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          });
+          selectResult(searchResults[index]);
         };
       });
+      
+      // Auto-select first result when typing
+      if (searchResults.length > 0) {
+        selectedIndex = 0;
+        updateSelection();
+      }
     };
   }
 

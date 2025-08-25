@@ -3,12 +3,60 @@
 
   // ---------------- CONSTANTS ----------------
   const THEMES = {
-    "Midnight Neon": { bg: "#181a1b", key: "#ffffff", string: "#00e6e6", number: "#ffd700", boolean: "#ff6f00", null: "#ff3b3b", url: "#2196f3" },
-    "Graphite Dark": { bg: "#121212", key: "#b0b0b0", string: "#6ad1e3", number: "#f6d55c", boolean: "#ed553b", null: "#ff3b3b", url: "#4ea1f3" },
-    "Solar Dark": { bg: "#002b36", key: "#93a1a1", string: "#2aa198", number: "#b58900", boolean: "#cb4b16", null: "#dc322f", url: "#268bd2" },
-    "Paper White": { bg: "#ffffff", key: "#333333", string: "#008b8b", number: "#a67c00", boolean: "#cc5500", null: "#d00000", url: "#0b5ed7" },
-    "Slate Light": { bg: "#f5f7fa", key: "#222222", string: "#007f8c", number: "#b38600", boolean: "#cc4e00", null: "#c20000", url: "#005bcc" },
-    "Solar Light": { bg: "#fdf6e3", key: "#657b83", string: "#2aa198", number: "#b58900", boolean: "#cb4b16", null: "#dc322f", url: "#268bd2" }
+    "Midnight Neon": { 
+      bg: "#0a0a0a", 
+      key: "#ffffff", 
+      string: "#00ffff", 
+      number: "#ffff00", 
+      boolean: "#ff6600", 
+      null: "#ff0000", 
+      url: "#00aaff" 
+    },
+    "Graphite Dark": { 
+      bg: "#1a1a1a", 
+      key: "#e0e0e0", 
+      string: "#00e6ff", 
+      number: "#ffcc00", 
+      boolean: "#ff4400", 
+      null: "#ff3333", 
+      url: "#4488ff" 
+    },
+    "Solar Dark": { 
+      bg: "#001122", 
+      key: "#b0d0d0", 
+      string: "#00ffcc", 
+      number: "#ffaa00", 
+      boolean: "#ff5500", 
+      null: "#ff2222", 
+      url: "#2299ff" 
+    },
+    "Paper White": { 
+      bg: "#ffffff", 
+      key: "#000000", 
+      string: "#0066cc", 
+      number: "#cc6600", 
+      boolean: "#cc3300", 
+      null: "#cc0000", 
+      url: "#0066ff" 
+    },
+    "Slate Light": { 
+      bg: "#f8fafc", 
+      key: "#111111", 
+      string: "#006699", 
+      number: "#cc6600", 
+      boolean: "#cc3300", 
+      null: "#cc0000", 
+      url: "#0066cc" 
+    },
+    "Solar Light": { 
+      bg: "#fff8e0", 
+      key: "#333333", 
+      string: "#006666", 
+      number: "#cc6600", 
+      boolean: "#cc3300", 
+      null: "#cc0000", 
+      url: "#0066cc" 
+    }
   };
 
   window.NJPP.THEMES = THEMES;
