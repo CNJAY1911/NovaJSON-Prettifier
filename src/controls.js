@@ -549,9 +549,41 @@
         if (typeof obj === 'object' && obj !== null) {
           Object.entries(obj).forEach(([k, v]) => {
             const childPath = path + (Array.isArray(obj) ? `[${k}]` : `.${k}`);
-            if (!Array.isArray(obj) && k.toLowerCase().includes(term)) searchResults.push({ path: childPath, key: k, value: v });
-            if (typeof v === 'string' && v.toLowerCase().includes(term)) searchResults.push({ path: childPath, key: k, value: v });
-            if (typeof v === 'object' && v !== null) search(v, childPath);
+            
+            // Search object keys (for non-array objects)
+            if (!Array.isArray(obj) && k.toLowerCase().includes(term)) {
+              searchResults.push({ path: childPath, key: k, value: v });
+            }
+            
+            // Search array indices (for arrays)
+            if (Array.isArray(obj) && k.toLowerCase().includes(term)) {
+              searchResults.push({ path: childPath, key: k, value: v });
+            }
+            
+            // Search string values
+            if (typeof v === 'string' && v.toLowerCase().includes(term)) {
+              searchResults.push({ path: childPath, key: k, value: v });
+            }
+            
+            // Search number values
+            if (typeof v === 'number' && v.toString().includes(term)) {
+              searchResults.push({ path: childPath, key: k, value: v });
+            }
+            
+            // Search boolean values
+            if (typeof v === 'boolean' && v.toString().includes(term)) {
+              searchResults.push({ path: childPath, key: k, value: v });
+            }
+            
+            // Search null values
+            if (v === null && term === 'null') {
+              searchResults.push({ path: childPath, key: k, value: v });
+            }
+            
+            // Recursively search nested objects
+            if (typeof v === 'object' && v !== null) {
+              search(v, childPath);
+            }
           });
         }
       })(state.rootJson, '');
