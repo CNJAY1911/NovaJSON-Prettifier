@@ -14,7 +14,7 @@
       'jpp-boolean-color': COLORS.boolean,
       'jpp-null-color': COLORS.null,
       'jpp-url-color': COLORS.url, // JSON tree URLs (blue)
-      'jpp-toolbar-url-color': state.urlStyles.color, // Top toolbar URL text (yellow by default)
+      'jpp-toolbar-url-color': state.getUrlColor(), // Top toolbar URL text (theme-adaptive)
       'jpp-highlight-color': state.getHighlightColor(),
       'jpp-tree-font-size': state.fontSize + 'px',
       'jpp-url-font-size': state.urlStyles.fontSize,

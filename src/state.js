@@ -11,7 +11,7 @@
   let customUrlColor = null;
 
   let urlStyles = {
-    color: COLORS.number,
+    color: COLORS.url,
     fontSize: '16px',
     fontWeight: '400',
     lineHeight: '1.2',
@@ -77,6 +77,11 @@
     COLORS = { ...THEMES[currentTheme] };
     keyColor = COLORS.key;
     
+    // Update URL color to match theme (only if no custom color is set)
+    if (!customUrlColor) {
+      urlStyles.color = COLORS.url;
+    }
+    
     // Save theme preference to storage
     const { utils } = window.NJPP;
     if (utils && utils.saveToStorage) {
@@ -105,6 +110,7 @@
   // Save custom URL color
   function setCustomUrlColor(color) {
     customUrlColor = color;
+    urlStyles.color = color || COLORS.url;
     const { utils } = window.NJPP;
     if (utils && utils.saveToStorage) {
       utils.saveToStorage('jpp-url-color', color);
@@ -126,7 +132,7 @@
   }
   function getHighlightColor() { return customHighlightColor || getThemeHighlightColor(); }
   function getThemeUrlColor() { return COLORS.url; }
-  function getUrlColor() { return customUrlColor || getThemeUrlColor(); }
+  function getUrlColor() { return customUrlColor || COLORS.url; }
   function getHighlightColorHex() {
     if (customHighlightColor) return customHighlightColor;
     const bg = COLORS.bg.toLowerCase();

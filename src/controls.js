@@ -30,32 +30,6 @@
     </div>`;
   }
 
-  function renderUrlManager(urlStyles) {
-    const fonts = [
-      { name: 'Fira Mono', css: 'Fira Mono, monospace' }, { name: 'JetBrains Mono', css: 'JetBrains Mono, monospace' },
-      { name: 'Source Code Pro', css: 'Source Code Pro, monospace' }, { name: 'IBM Plex Mono', css: 'IBM Plex Mono, monospace' },
-      { name: 'Roboto Mono', css: 'Roboto Mono, monospace' }, { name: 'Inconsolata', css: 'Inconsolata, monospace' },
-      { name: 'Menlo', css: 'Menlo, monospace' }, { name: 'Consolas', css: 'Consolas, monospace' },
-      { name: 'Courier New', css: 'Courier New, monospace' }, { name: 'monospace', css: 'monospace' }
-    ];
-    return `<div class="jpp-url-manager" style="display:flex;align-items:center;gap:10px;margin:0;padding:0;flex-wrap:wrap;">
-      <span style="color:var(--jpp-key-color);font-size:14px;font-weight:500;">URL text:</span>
-      <input type="color" class="jpp-url-color" value="${state.urlStyles.color}" title="Color" style="width:28px;height:28px;border:2px solid var(--jpp-url-color);border-radius:4px;cursor:pointer;">
-      <button class="jpp-url-reset" style="margin-left:4px;padding:4px 8px;font-size:12px;background:var(--jpp-url-color);color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:500;">Reset</button>
-      <input type="number" class="jpp-url-fontsize" min="10" max="40" value="${parseInt(urlStyles.fontSize)}" title="Font Size" style="width:52px;padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
-      <select class="jpp-url-fontweight" title="Font Weight" style="padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
-        <option value="400" ${urlStyles.fontWeight==='400'?'selected':''}>Normal</option>
-        <option value="500" ${urlStyles.fontWeight==='500'?'selected':''}>Medium</option>
-        <option value="600" ${urlStyles.fontWeight==='600'?'selected':''}>Semi-Bold</option>
-        <option value="700" ${urlStyles.fontWeight==='700'?'selected':''}>Bold</option>
-      </select>
-      <input type="number" class="jpp-url-lineheight" min="1" max="3" step="0.05" value="${parseFloat(urlStyles.lineHeight)}" title="Line Height" style="width:52px;padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
-      <input type="number" class="jpp-url-letterspacing" min="0" max="10" step="0.1" value="${parseFloat(urlStyles.letterSpacing)}" title="Letter Spacing" style="width:52px;padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
-      <select class="jpp-url-fontfamily" title="Font Family" style="padding:4px;border:1px solid var(--jpp-url-color);border-radius:4px;background:var(--jpp-bg);color:var(--jpp-key-color);">
-        ${fonts.map(f => `<option value="${f.css}" ${urlStyles.fontFamily===f.css?'selected':''}>${f.name}</option>`).join('')}
-      </select>
-    </div>`;
-  }
 
   function renderHighlightColorPicker() {
     return `<div style="display:inline-flex;align-items:center;gap:8px;">
@@ -65,13 +39,19 @@
     </div>`;
   }
 
-  function renderTopBar(urlStyles) {
+  function renderTopBar() {
+    const baseUrlVal = utils.escapeHTML(window.location.origin || window.location.host || '');
     return `<div class="jpp-topbar">
       <div class="jpp-topbar-row">
         <div class="jpp-topbar-left">
-          ${renderKeyPalette()} ${renderThemeSelect()} ${renderFontSizeSlider()} ${renderHighlightColorPicker()} ${renderUrlManager(state.urlStyles)}
+          ${renderKeyPalette()} ${renderThemeSelect()} ${renderFontSizeSlider()} ${renderHighlightColorPicker()}
         </div>
-        <div class="jpp-topbar-right">
+        <div class="jpp-baseurl-row" style="flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;">
+          <span style="color:var(--jpp-key-color);font-size:14px;font-weight:600;">Base URL:</span>
+          <input class="jpp-baseurl-input" type="text" value="${baseUrlVal}" placeholder="https://api.example.com" style="width:220px;max-width:260px;flex:0 0 auto;background:var(--jpp-bg);color:var(--jpp-key-color);border:1px solid var(--jpp-url-color);padding:8px 10px;border-radius:6px;font-size:13px;outline:none;">
+          <button class="jpp-baseurl-go jpp-pill" style="flex-shrink:0;padding:7px 12px;font-size:13px;">Publish</button>
+        </div>
+        <div class="jpp-topbar-right" style="flex:0 0 auto;">
           <button class="jpp-expand jpp-pill">Expand All</button>
           <button class="jpp-collapse jpp-pill">Collapse All</button>
         </div>
@@ -120,7 +100,7 @@
 
     const container = document.createElement('div');
     container.id = 'jpp-root';
-    container.innerHTML = renderTopBar(state.urlStyles) + `
+    container.innerHTML = renderTopBar() + `
       <div class="jpp-tree">
         ${renderer.renderTree(json)}
       </div>`;
@@ -160,17 +140,14 @@
       state.setTheme(e.target.value);
       dom.applyThemeStyles();
       container.querySelectorAll('.jpp-highlight').forEach(el => { el.style.background = state.getHighlightColor(); });
-      if (!state.customUrlColorRef.value) {
-        state.urlStyles.color = state.COLORS.number; // Reset to yellow (number color)
-        const urlColorInput = container.querySelector('.jpp-url-color');
-        if (urlColorInput) urlColorInput.value = state.COLORS.number;
-      }
       safeRender(json);
     });
 
     // Initial handlers
     initToggleHandlers(container);
     initCollapsedHandlers(container);
+    initKeyContextMenuHandlers(container);
+    initValueContextMenuHandlers(container);
 
     // Key color picker
     const keyColorInput = container.querySelector('.jpp-key-color-picker');
@@ -193,23 +170,106 @@
       requestAnimationFrame(dom.repositionAllToggles);
     });
 
+    // Base URL navigation
+    const baseUrlInput = container.querySelector('.jpp-baseurl-input');
+    const baseUrlGo = container.querySelector('.jpp-baseurl-go');
+    const goToBaseUrl = () => {
+      if (!baseUrlInput) return;
+      const newOrigin = baseUrlInput.value.trim();
+      if (!newOrigin) return;
+      const current = window.location;
+      let target = null;
+      try {
+        // Allow inputs without protocol by prefixing current protocol
+        const candidate = newOrigin.match(/^https?:\/\//i) ? newOrigin : `${current.protocol}//${newOrigin.replace(/^\/+/, '')}`;
+        const u = new URL(candidate);
+        target = `${u.origin}${current.pathname}${current.search}${current.hash}`;
+      } catch (e) {
+        return; // invalid URL, do nothing
+      }
+      if (target) window.location.href = target;
+    };
+    if (baseUrlGo) baseUrlGo.onclick = goToBaseUrl;
+    if (baseUrlInput) {
+      baseUrlInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          goToBaseUrl();
+        }
+      });
+    }
+
     // Ctrl/Cmd+F
     window.onkeydown = e => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); createFindPopup(); }
     };
 
-    // Copy special
+    // Copy special: when selecting a collapsed object (with or without its key), copy the full JSON value
     document.addEventListener('copy', e => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed) return;
-      const anc = sel.anchorNode && sel.anchorNode.parentElement;
-      if (anc && anc.classList.contains('jpp-collapsed')) {
-        const path = anc.getAttribute('data-path');
-        const v = pathing.getValueAtPath(state.rootJson, path);
-        const txt = typeof v === 'object' ? JSON.stringify(v, null, 2) : JSON.stringify(v);
-        e.clipboardData.setData('text/plain', txt);
-        e.preventDefault();
+      const range = sel.rangeCount ? sel.getRangeAt(0) : null;
+
+      const findCollapsed = () => {
+        const anchorEl = sel.anchorNode && sel.anchorNode.parentElement;
+        const focusEl = sel.focusNode && sel.focusNode.parentElement;
+        if (anchorEl) {
+          const c = anchorEl.closest('.jpp-collapsed');
+          if (c) return c;
+          const line = anchorEl.closest('.jpp-line');
+          if (line) {
+            const c2 = line.querySelector('.jpp-collapsed');
+            if (c2) return c2;
+          }
+        }
+        if (focusEl) {
+          const c = focusEl.closest('.jpp-collapsed');
+          if (c) return c;
+          const line = focusEl.closest('.jpp-line');
+          if (line) {
+            const c2 = line.querySelector('.jpp-collapsed');
+            if (c2) return c2;
+          }
+        }
+        if (range && range.commonAncestorContainer && range.commonAncestorContainer.nodeType === 1) {
+          const c = range.commonAncestorContainer.querySelector && range.commonAncestorContainer.querySelector('.jpp-collapsed');
+          if (c) return c;
+        }
+        return null;
+      };
+
+      const collapsedEl = findCollapsed();
+      if (!collapsedEl) return;
+
+      const path = collapsedEl.getAttribute('data-path');
+      if (!path) return;
+
+      const value = pathing.getValueAtPath(state.rootJson, path);
+      let txt = typeof value === 'object' ? JSON.stringify(value, null, 2) : JSON.stringify(value);
+
+      // If parent is an object (not array), include the key label only when the key is part of the selection
+      const parentPath = window.NJPP.pathing.getParentPath(path);
+      const parent = parentPath ? window.NJPP.pathing.getValueAtPath(state.rootJson, parentPath) : null;
+      const parentIsArray = Array.isArray(parent);
+      if (!parentIsArray && path) {
+        const keyEl = collapsedEl.closest('.jpp-line')?.querySelector('.jpp-key');
+        let includeKey = false;
+        if (keyEl) {
+          includeKey = keyEl.contains(sel.anchorNode) || keyEl.contains(sel.focusNode);
+          if (!includeKey && range) {
+            try { includeKey = range.intersectsNode(keyEl); } catch (e) { /* ignore */ }
+          }
+        }
+        if (includeKey) {
+          const key = window.NJPP.pathing.getLastKeyFromPath(path);
+          if (key !== null && key !== undefined) {
+            txt = `"${String(key)}": ${txt}`;
+          }
+        }
       }
+
+      e.clipboardData.setData('text/plain', txt);
+      e.preventDefault();
     });
 
     // Clear highlight on outside click
@@ -221,69 +281,6 @@
       }
     });
 
-    // URL manager events
-    const urlColor = container.querySelector('.jpp-url-color');
-    const urlResetBtn = container.querySelector('.jpp-url-reset');
-    const urlFontSize = container.querySelector('.jpp-url-fontsize');
-    const urlFontWeight = container.querySelector('.jpp-url-fontweight');
-    const urlLineHeight = container.querySelector('.jpp-url-lineheight');
-    const urlLetterSpacing = container.querySelector('.jpp-url-letterspacing');
-    const urlFontFamily = container.querySelector('.jpp-url-fontfamily');
-    const urlDiv = container.querySelector('.jpp-url-bar');
-    
-    const updateUrlVars = () => dom.applyThemeStyles();
-    
-    if (urlColor) {
-      urlColor.addEventListener('input', e => { 
-        state.customUrlColorRef.value = e.target.value || null; 
-        state.urlStyles.color = e.target.value || state.getThemeUrlColor(); 
-        updateUrlVars();
-      });
-    }
-    if (urlResetBtn) {
-      urlResetBtn.addEventListener('click', () => {
-        state.customUrlColorRef.value = null; 
-        state.urlStyles.color = state.COLORS.number; // Reset to yellow (number color)
-        updateUrlVars();
-        if (urlColor) urlColor.value = state.COLORS.number;
-        state.saveUrlStyles();
-      });
-    }
-    if (urlFontSize) {
-      urlFontSize.addEventListener('input', e => { 
-        state.urlStyles.fontSize = e.target.value + 'px'; 
-        updateUrlVars();
-        state.saveUrlStyles();
-      });
-    }
-    if (urlFontWeight) {
-      urlFontWeight.addEventListener('change', e => { 
-        state.urlStyles.fontWeight = e.target.value; 
-        updateUrlVars();
-        state.saveUrlStyles();
-      });
-    }
-    if (urlLineHeight) {
-      urlLineHeight.addEventListener('input', e => { 
-        state.urlStyles.lineHeight = e.target.value; 
-        updateUrlVars();
-        state.saveUrlStyles();
-      });
-    }
-    if (urlLetterSpacing) {
-      urlLetterSpacing.addEventListener('input', e => { 
-        state.urlStyles.letterSpacing = e.target.value; 
-        updateUrlVars();
-        state.saveUrlStyles();
-      });
-    }
-    if (urlFontFamily) {
-      urlFontFamily.addEventListener('change', e => { 
-        state.urlStyles.fontFamily = e.target.value; 
-        updateUrlVars();
-        state.saveUrlStyles();
-      });
-    }
 
     const highlightColorInput = container.querySelector('.jpp-highlight-color-picker');
     const highlightResetBtn = container.querySelector('.jpp-highlight-reset');
@@ -398,6 +395,171 @@
       return keys.indexOf(lk) === keys.length - 1;
     }
     return true;
+  }
+
+  // Right-click menu on keys for quick copy actions
+  let keyContextMenu = null;
+  function closeKeyContextMenu() {
+    if (keyContextMenu && keyContextMenu.parentNode) keyContextMenu.parentNode.removeChild(keyContextMenu);
+    keyContextMenu = null;
+  }
+  let valueContextMenu = null;
+  function closeValueContextMenu() {
+    if (valueContextMenu && valueContextMenu.parentNode) valueContextMenu.parentNode.removeChild(valueContextMenu);
+    valueContextMenu = null;
+  }
+
+  function initKeyContextMenuHandlers() {
+    if (window.NJPP._keyCtxMenuBound) return;
+    window.NJPP._keyCtxMenuBound = true;
+
+    const { pathing, utils } = window.NJPP;
+
+    const addItem = (menu, label, action) => {
+      const item = document.createElement('div');
+      item.textContent = label;
+      item.style.padding = '8px 12px';
+      item.style.cursor = 'pointer';
+      item.style.color = 'var(--jpp-key-color)';
+      item.style.fontSize = '14px';
+      item.style.fontWeight = '500';
+      item.onmouseenter = () => { item.style.background = 'rgba(255,255,255,0.08)'; };
+      item.onmouseleave = () => { item.style.background = 'transparent'; };
+      item.onclick = () => { action(); closeKeyContextMenu(); };
+      menu.appendChild(item);
+    };
+
+    document.addEventListener('click', e => { 
+      if (keyContextMenu && !keyContextMenu.contains(e.target)) closeKeyContextMenu(); 
+      if (valueContextMenu && !valueContextMenu.contains(e.target)) closeValueContextMenu();
+    });
+    window.addEventListener('scroll', () => { closeKeyContextMenu(); closeValueContextMenu(); }, true);
+    window.addEventListener('resize', () => { closeKeyContextMenu(); closeValueContextMenu(); });
+
+    document.addEventListener('contextmenu', e => {
+      const keyEl = e.target.closest('.jpp-key');
+      if (!keyEl) { closeKeyContextMenu(); return; }
+
+      const line = keyEl.closest('.jpp-line');
+      if (!line) return;
+      const path = line.getAttribute('data-jpp-path');
+      if (!path) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      closeKeyContextMenu();
+
+      const value = pathing.getValueAtPath(state.rootJson, path);
+      const isObject = value !== null && typeof value === 'object';
+      const keyText = keyEl.textContent.replace(/^\"|\"$/g, '');
+
+      const menu = document.createElement('div');
+      keyContextMenu = menu;
+      menu.style.position = 'fixed';
+      menu.style.zIndex = '10010';
+      menu.style.minWidth = '160px';
+      menu.style.background = 'var(--jpp-bg)';
+      menu.style.color = 'var(--jpp-key-color)';
+      menu.style.border = '1px solid rgba(255,255,255,0.15)';
+      menu.style.boxShadow = '0 6px 18px rgba(0,0,0,0.3)';
+      menu.style.borderRadius = '8px';
+      menu.style.padding = '6px 0';
+      menu.style.backdropFilter = 'blur(6px)';
+
+      addItem(menu, 'Copy key', () => utils.copyToClipboard(keyText));
+      if (isObject) {
+        addItem(menu, 'Copy object', () => utils.copyToClipboard(JSON.stringify(value, null, 2)));
+      } else {
+        addItem(menu, 'Copy value', () => utils.copyToClipboard(JSON.stringify(value)));
+      }
+      // Copy both key and value/object in JSON snippet form
+      const valueSnippet = isObject ? JSON.stringify(value, null, 2) : JSON.stringify(value);
+      addItem(menu, 'Copy both', () => utils.copyToClipboard(`"${keyText}": ${valueSnippet}`));
+
+      const maxLeft = window.innerWidth - 200;
+      const maxTop = window.innerHeight - 140;
+      const left = Math.min(e.clientX, maxLeft);
+      const top = Math.min(e.clientY, maxTop);
+      menu.style.left = `${left}px`;
+      menu.style.top = `${top}px`;
+
+      document.body.appendChild(menu);
+    });
+  }
+
+  function initValueContextMenuHandlers() {
+    if (window.NJPP._valueCtxMenuBound) return;
+    window.NJPP._valueCtxMenuBound = true;
+
+    const { pathing, utils } = window.NJPP;
+
+    const addItem = (menu, label, action) => {
+      const item = document.createElement('div');
+      item.textContent = label;
+      item.style.padding = '8px 12px';
+      item.style.cursor = 'pointer';
+      item.style.color = 'var(--jpp-key-color)';
+      item.style.fontSize = '14px';
+      item.style.fontWeight = '500';
+      item.onmouseenter = () => { item.style.background = 'rgba(255,255,255,0.08)'; };
+      item.onmouseleave = () => { item.style.background = 'transparent'; };
+      item.onclick = () => { action(); closeValueContextMenu(); };
+      menu.appendChild(item);
+    };
+
+    document.addEventListener('contextmenu', e => {
+      const valueEl = e.target.closest('.jpp-string, .jpp-number, .jpp-boolean, .jpp-null, .jpp-link');
+      if (!valueEl) { closeValueContextMenu(); return; }
+
+      const line = valueEl.closest('.jpp-line');
+      if (!line) return;
+      const path = line.getAttribute('data-jpp-path');
+      if (!path) return;
+
+      // Do not handle if value is an object/array (those use copy object via other handlers)
+      const value = pathing.getValueAtPath(state.rootJson, path);
+      if (value !== null && typeof value === 'object') { closeValueContextMenu(); return; }
+
+      e.preventDefault();
+      e.stopPropagation();
+      closeKeyContextMenu();
+      closeValueContextMenu();
+
+      const key = window.NJPP.pathing.getLastKeyFromPath(path);
+      const keyText = key !== null ? String(key) : null;
+      const valueText = JSON.stringify(value);
+
+      const menu = document.createElement('div');
+      valueContextMenu = menu;
+      menu.style.position = 'fixed';
+      menu.style.zIndex = '10010';
+      menu.style.minWidth = '160px';
+      menu.style.background = 'var(--jpp-bg)';
+      menu.style.color = 'var(--jpp-key-color)';
+      menu.style.border = '1px solid rgba(255,255,255,0.15)';
+      menu.style.boxShadow = '0 6px 18px rgba(0,0,0,0.3)';
+      menu.style.borderRadius = '8px';
+      menu.style.padding = '6px 0';
+      menu.style.backdropFilter = 'blur(6px)';
+
+      addItem(menu, 'Copy value', () => utils.copyToClipboard(valueText));
+      addItem(menu, 'Copy both', () => {
+        if (keyText !== null) {
+          utils.copyToClipboard(`"${keyText}": ${valueText}`);
+        } else {
+          utils.copyToClipboard(valueText);
+        }
+      });
+
+      const maxLeft = window.innerWidth - 200;
+      const maxTop = window.innerHeight - 140;
+      const left = Math.min(e.clientX, maxLeft);
+      const top = Math.min(e.clientY, maxTop);
+      menu.style.left = `${left}px`;
+      menu.style.top = `${top}px`;
+
+      document.body.appendChild(menu);
+    });
   }
 
   function createFindPopup() {

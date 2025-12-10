@@ -8,20 +8,40 @@
   const { dom } = window.NJPP;
   const { controls } = window.NJPP;
 
+  // Heuristic: only run when the page really looks like a JSON response
   function getRawJSONText() {
-    const pre = document.querySelector('pre');
-    if (pre) return pre.textContent.trim();
-    return document.body && document.body.childElementCount === 0
-      ? document.body.textContent.trim()
-      : null;
+    if (!document.body) return null;
+
+    // Strict: only accept a single <pre> element that is the sole body child
+    if (document.body.childElementCount === 1 && document.body.firstElementChild?.tagName === 'PRE') {
+      return document.body.firstElementChild.textContent.trim();
+    }
+
+    // Fallback: completely empty body with text only (no elements)
+    if (document.body.childElementCount === 0) {
+      const txt = document.body.textContent.trim();
+      return txt || null;
+    }
+
+    return null;
   }
 
   function isRawJSON() {
     const text = getRawJSONText();
     if (!text) return false;
+    // Must start with object/array to avoid matching random text
+    const startsProperly = text[0] === '{' || text[0] === '[';
+    if (!startsProperly) return false;
     try { JSON.parse(text); return true; } catch { return false; }
   }
 
+  function isLikelyJSONContentType() {
+    const ct = (document.contentType || '').toLowerCase();
+    return ct.includes('json') || ct.includes('javascript');
+  }
+
+  // Guard against normal HTML pages: require either JSON content-type or a body that is only JSON
+  if (!(isLikelyJSONContentType() || isRawJSON())) return;
   if (!isRawJSON()) return;
 
   // Ensure theme is loaded before applying styles
