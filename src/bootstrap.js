@@ -26,13 +26,16 @@
     return null;
   }
 
+  function tryParseJSON(text) {
+    if (!text) return null;
+    const t = text.trim();
+    if (!t || (t[0] !== '{' && t[0] !== '[')) return null;
+    try { return JSON.parse(t); } catch { return null; }
+  }
+
   function isRawJSON() {
     const text = getRawJSONText();
-    if (!text) return false;
-    // Must start with object/array to avoid matching random text
-    const startsProperly = text[0] === '{' || text[0] === '[';
-    if (!startsProperly) return false;
-    try { JSON.parse(text); return true; } catch { return false; }
+    return !!tryParseJSON(text);
   }
 
   function isLikelyJSONContentType() {
@@ -40,12 +43,59 @@
     return ct.includes('json') || ct.includes('javascript');
   }
 
-  // Guard against normal HTML pages: require either JSON content-type or a body that is only JSON
-  if (!(isLikelyJSONContentType() || isRawJSON())) return;
-  if (!isRawJSON()) return;
+  function getFallbackJSONText() {
+    // Prefer the first <pre> if present anywhere
+    const pre = document.querySelector('pre');
+    if (pre) return pre.textContent.trim();
+    // Otherwise, attempt full body text when there are very few elements
+    if (document.body && document.body.childElementCount <= 4) {
+      const txt = document.body.textContent.trim();
+      if (txt) return txt;
+    }
+    return null;
+  }
+
+  function addManualApplyButton(parseAndRun) {
+    if (window.NJPP && window.NJPP._manualBtnAdded) return;
+    window.NJPP = window.NJPP || {};
+    window.NJPP._manualBtnAdded = true;
+
+    const btn = document.createElement('button');
+    btn.textContent = 'Apply JSON formatter';
+    btn.style.position = 'fixed';
+    btn.style.top = '12px';
+    btn.style.right = '12px';
+    btn.style.zIndex = '2147483647';
+    btn.style.padding = '10px 14px';
+    btn.style.border = 'none';
+    btn.style.borderRadius = '8px';
+    btn.style.background = '#2563eb';
+    btn.style.color = '#fff';
+    btn.style.fontSize = '14px';
+    btn.style.fontWeight = '600';
+    btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.25)';
+    btn.style.cursor = 'pointer';
+    btn.style.opacity = '0.92';
+    btn.style.backdropFilter = 'blur(6px)';
+    btn.onmouseenter = () => btn.style.opacity = '1';
+    btn.onmouseleave = () => btn.style.opacity = '0.92';
+
+    btn.onclick = () => {
+      const text = getFallbackJSONText();
+      const parsed = tryParseJSON(text);
+      if (!parsed) {
+        alert('Could not find valid JSON on this page to format.');
+        return;
+      }
+      btn.remove();
+      parseAndRun(parsed);
+    };
+
+    document.body.appendChild(btn);
+  }
 
   // Ensure theme is loaded before applying styles
-  async function initializeExtension() {
+  async function initializeExtension(preParsedJson) {
     // If we have async storage, wait for theme to load
     if (utils && utils.loadFromStorage) {
       try {
@@ -84,18 +134,32 @@
     // Apply theme styles
     dom.applyThemeStyles();
 
-    const text = getRawJSONText();
-    if (!text) return;
-    let json;
-    try { json = JSON.parse(text); }
-    catch { document.body.innerHTML = '<div style="color:#ff3b3b;padding:24px;font-size:18px;">Invalid JSON</div>'; return; }
+    let json = preParsedJson;
+    if (!json) {
+      const text = getRawJSONText();
+      json = tryParseJSON(text);
+    }
+    if (!json) {
+      document.body.innerHTML = '<div style="color:#ff3b3b;padding:24px;font-size:18px;">Invalid JSON</div>';
+      return;
+    }
 
     document.body.innerHTML = '';
     controls.safeRender(json);
   }
 
-  // Start initialization
-  initializeExtension();
+  // Decide whether to auto-run or provide manual button
+  const rawParsed = tryParseJSON(getRawJSONText());
+  const likelyJSON = isLikelyJSONContentType();
+
+  if (rawParsed) {
+    initializeExtension(rawParsed);
+    return;
+  }
+
+  if (likelyJSON) {
+    addManualApplyButton(initializeExtension);
+  }
 })();
 
 
