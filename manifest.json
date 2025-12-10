@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NovaJSON Prettifier",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Auto‑formats raw JSON (object or array roots). Detection, theme‑aware highlighting, color pickers, avoids double‑formatting.",
   "permissions": ["storage"],
   "icons": {
