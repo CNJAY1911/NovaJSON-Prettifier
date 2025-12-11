@@ -158,7 +158,12 @@
   }
 
   if (likelyJSON) {
-    addManualApplyButton(initializeExtension);
+    const fallbackParsed = tryParseJSON(getFallbackJSONText());
+    if (fallbackParsed) {
+      initializeExtension(fallbackParsed);
+    } else {
+      addManualApplyButton(initializeExtension);
+    }
   }
 })();
 
